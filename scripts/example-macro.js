@@ -1,12 +1,12 @@
-// Example Macros for JRPG Conversation Display Module
+// Example Macros for Intrinsic's Conversations Module
 // Copy these to create your own macros in Foundry
 
 // Macro 1: Add Selected Tokens to Conversation
 // Usage: Select tokens on canvas, then run this macro
 const addSelectedToConversation = () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api) {
-    ui.notifications.error('JRPG Conversation Display module not found!');
+    ui.notifications.error('Intrinsic\'s Conversations module not found!');
     return;
   }
 
@@ -27,9 +27,9 @@ const addSelectedToConversation = () => {
 // Macro 2: Quick NPC Setup
 // Automatically finds common NPC tokens and adds them to conversation
 const quickNPCSetup = () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api) {
-    ui.notifications.error('JRPG Conversation Display module not found!');
+    ui.notifications.error('Intrinsic\'s Conversations module not found!');
     return;
   }
 
@@ -60,9 +60,9 @@ const quickNPCSetup = () => {
 // Macro 3: Rotate Speaker
 // Cycles through characters in conversation, setting next one as speaker
 const rotateSpeaker = () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api) {
-    ui.notifications.error('JRPG Conversation Display module not found!');
+    ui.notifications.error('Intrinsic\'s Conversations module not found!');
     return;
   }
 
@@ -89,9 +89,9 @@ const rotateSpeaker = () => {
 // Macro 4: Random Speaker
 // Sets a random character as the current speaker
 const randomSpeaker = () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api) {
-    ui.notifications.error('JRPG Conversation Display module not found!');
+    ui.notifications.error('Intrinsic\'s Conversations module not found!');
     return;
   }
 
@@ -111,7 +111,7 @@ const randomSpeaker = () => {
 // Macro 5: Save Conversation State
 // Saves current conversation to a journal entry for later restoration
 const saveConversationState = async () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api || !game.user.isGM) {
     ui.notifications.error('GM access required for saving conversation states');
     return;
@@ -145,7 +145,7 @@ const saveConversationState = async () => {
 // Macro 6: Load Conversation State  
 // Loads a conversation state from a journal entry
 const loadConversationState = async () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api || !game.user.isGM) {
     ui.notifications.error('GM access required for loading conversation states');
     return;
@@ -184,9 +184,9 @@ const loadConversationState = async () => {
 // Macro 7: Clear and Reset
 // Completely clears conversation and closes display
 const clearAndReset = () => {
-  const api = game.modules.get('jrpg-conversation')?.api;
+  const api = game.modules.get('intrinsics-conversations')?.api;
   if (!api) {
-    ui.notifications.error('JRPG Conversation Display module not found!');
+    ui.notifications.error('Intrinsic\'s Conversations module not found!');
     return;
   }
 

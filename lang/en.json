@@ -1,6 +1,6 @@
 {
-  "jrpg-conversation": {
-    "title": "JRPG Conversation Display",
+  "intrinsics-conversations": {
+    "title": "Intrinsic's Conversations",
     "settings": {
       "displayPosition": {
         "name": "Display Position",

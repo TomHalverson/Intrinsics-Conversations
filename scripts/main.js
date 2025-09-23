@@ -5,10 +5,10 @@ let conversationDisplay = null;
 
 // Initialize the module
 Hooks.once('init', () => {
-  console.log('JRPG Conversation Display | Initializing module');
+  console.log('Intrinsic\'s Conversations | Initializing module');
   
   // Register module settings
-  game.settings.register('jrpg-conversation', 'displayPosition', {
+  game.settings.register('intrinsics-conversations', 'displayPosition', {
     name: 'Display Position',
     hint: 'Choose where the conversation display appears on screen',
     scope: 'client',
@@ -23,7 +23,7 @@ Hooks.once('init', () => {
     default: 'bottom'
   });
 
-  game.settings.register('jrpg-conversation', 'displayOpacity', {
+  game.settings.register('intrinsics-conversations', 'displayOpacity', {
     name: 'Display Opacity',
     hint: 'Set the opacity of the conversation display (0-100)',
     scope: 'client',
@@ -37,7 +37,7 @@ Hooks.once('init', () => {
     default: 85
   });
 
-  game.settings.register('jrpg-conversation', 'portraitSize', {
+  game.settings.register('intrinsics-conversations', 'portraitSize', {
     name: 'Portrait Size',
     hint: 'Size of the character portraits in pixels',
     scope: 'client',
@@ -54,13 +54,16 @@ Hooks.once('init', () => {
 
 // Initialize after Foundry is ready
 Hooks.once('ready', () => {
-  console.log('JRPG Conversation Display | Module ready');
+  console.log('Intrinsic\'s Conversations | Module ready');
+  
+  // Show success notification
+  ui.notifications.info('Intrinsic\'s Conversations loaded successfully!');
   
   // Create the conversation display instance
   conversationDisplay = new ConversationDisplay();
   
   // Register the display globally for easy access
-  game.modules.get('jrpg-conversation').api = {
+  game.modules.get('intrinsics-conversations').api = {
     display: conversationDisplay,
     addCharacter: (token) => conversationDisplay.addCharacter(token),
     removeCharacter: (tokenId) => conversationDisplay.removeCharacter(tokenId),
@@ -70,15 +73,14 @@ Hooks.once('ready', () => {
     hide: () => conversationDisplay.close(),
     clear: () => conversationDisplay.clearAll()
   };
-});
-
-// Add context menu option to tokens
-Hooks.on('getTokenHUD', (token, html, data) => {
-  // This hook is for token HUD, but we'll use getSceneControlButtons for right-click
+  
+  console.log('Intrinsic\'s Conversations | API registered');
 });
 
 // Handle right-click context menu on tokens
 Hooks.on('getTokenContext', (html, contextOptions) => {
+  console.log('Intrinsic\'s Conversations | Token context menu hook fired');
+  
   contextOptions.push({
     name: 'Add to Conversation',
     icon: '<i class="fas fa-comments"></i>',
@@ -115,7 +117,7 @@ Hooks.on('getTokenContext', (html, contextOptions) => {
 
 // Handle scene controls for additional functionality
 Hooks.on('getSceneControlButtons', (controls) => {
-  if (!game.user.isGM && !game.settings.get('jrpg-conversation', 'allowPlayers')) return;
+  if (!game.user.isGM && !game.settings.get('intrinsics-conversations', 'allowPlayers')) return;
 
   const tokenControls = controls.find(c => c.name === 'token');
   if (tokenControls) {
@@ -154,7 +156,7 @@ Hooks.on('canvasReady', () => {
 
 // Keybind support
 Hooks.on('init', () => {
-  game.keybindings.register('jrpg-conversation', 'toggleDisplay', {
+  game.keybindings.register('intrinsics-conversations', 'toggleDisplay', {
     name: 'Toggle Conversation Display',
     hint: 'Show or hide the conversation display window',
     editable: [
@@ -174,7 +176,7 @@ Hooks.on('init', () => {
     }
   });
 
-  game.keybindings.register('jrpg-conversation', 'clearConversation', {
+  game.keybindings.register('intrinsics-conversations', 'clearConversation', {
     name: 'Clear Conversation',
     hint: 'Remove all characters from the conversation display',
     editable: [
