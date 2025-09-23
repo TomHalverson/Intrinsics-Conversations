@@ -28,7 +28,7 @@
   ],
   "url": "https://github.com/yourusername/jrpg-conversation",
   "manifest": "https://raw.githubusercontent.com/TomHalverson/Intrinsics-Conversations/refs/heads/main/module.json",
-  "download": "https://github.com/yourusername/jrpg-conversation/releases/latest/download/jrpg-conversation.zip",
+  "download": "https://github.com/TomHalverson/Intrinsics-Conversations/archive/refs/heads/main.zip",
   "license": "MIT",
   "readme": "README.md",
   "bugs": "https://github.com/yourusername/jrpg-conversation/issues",
