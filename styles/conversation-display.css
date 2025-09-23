@@ -1,0 +1,350 @@
+/* Main conversation display container */
+.jrpg-conversation-display {
+  --portrait-size: 100px;
+  --border-color: #fff;
+  --shadow-color: rgba(0, 0, 0, 0.7);
+  --speaking-color: #ffd700;
+  --hover-color: #87ceeb;
+  --background-color: rgba(0, 0, 0, 0.3);
+  
+  background: var(--background-color);
+  backdrop-filter: blur(5px);
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 8px 32px var(--shadow-color);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Signika', sans-serif;
+  user-select: none;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Remove default window styling */
+.jrpg-conversation-display .window-header {
+  display: none;
+}
+
+.jrpg-conversation-display .window-content {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Characters container */
+.conversation-characters {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Position-specific layouts */
+.jrpg-conversation-display.position-left .conversation-characters,
+.jrpg-conversation-display.position-right .conversation-characters {
+  flex-direction: column;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.jrpg-conversation-display.position-top .conversation-characters,
+.jrpg-conversation-display.position-bottom .conversation-characters {
+  flex-direction: row;
+  max-width: 90vw;
+  overflow-x: auto;
+}
+
+/* Individual character */
+.conversation-character {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(3px);
+}
+
+.conversation-character:hover {
+  transform: translateY(-5px) scale(1.05);
+  background: rgba(135, 206, 235, 0.2);
+  box-shadow: 0 10px 25px rgba(135, 206, 235, 0.3);
+}
+
+/* Character portrait container */
+.character-portrait {
+  position: relative;
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+  padding: 3px;
+}
+
+.character-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  filter: brightness(0.9) contrast(1.1);
+}
+
+.conversation-character:hover .character-portrait img {
+  filter: brightness(1.1) contrast(1.2);
+}
+
+/* Character border effect */
+.character-border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.conversation-character:hover .character-border {
+  border-color: var(--hover-color);
+  opacity: 1;
+  box-shadow: 0 0 15px var(--hover-color);
+}
+
+/* Speaking character effects */
+.conversation-character.speaking {
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+
+.conversation-character.speaking .character-border {
+  border-color: var(--speaking-color);
+  opacity: 1;
+  box-shadow: 0 0 20px var(--speaking-color);
+}
+
+.conversation-character.speaking .character-portrait img {
+  filter: brightness(1.2) contrast(1.3) saturate(1.2);
+}
+
+/* Pulse glow animation for speaking character */
+.conversation-character.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+  }
+}
+
+/* Speaker indicator */
+.speaker-indicator {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(45deg, var(--speaking-color), #ffed4a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: bounce 1s ease-in-out infinite;
+}
+
+.speaker-indicator i {
+  font-size: 12px;
+  color: #000;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Character name */
+.character-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  max-width: calc(var(--portrait-size) + 20px);
+  word-wrap: break-word;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  opacity: 0.9;
+  transition: all 0.3s ease;
+  line-height: 1.2;
+}
+
+.conversation-character:hover .character-name {
+  opacity: 1;
+  color: var(--hover-color);
+}
+
+.conversation-character.speaking .character-name {
+  color: var(--speaking-color);
+  opacity: 1;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px var(--speaking-color);
+}
+
+/* Empty state */
+.conversation-empty {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  font-style: italic;
+  padding: 20px;
+  font-size: 14px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .jrpg-conversation-display {
+    --portrait-size: 80px;
+    padding: 10px;
+  }
+  
+  .conversation-characters {
+    gap: 10px;
+  }
+  
+  .character-name {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .jrpg-conversation-display {
+    --portrait-size: 60px;
+    padding: 8px;
+  }
+  
+  .conversation-characters {
+    gap: 8px;
+  }
+  
+  .character-name {
+    font-size: 10px;
+  }
+  
+  .speaker-indicator {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .speaker-indicator i {
+    font-size: 10px;
+  }
+}
+
+/* Scrollbar styling for overflow */
+.conversation-characters::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.conversation-characters::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.conversation-characters::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.conversation-characters::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Dark theme adjustments */
+.dark .jrpg-conversation-display {
+  --border-color: #ccc;
+  --background-color: rgba(20, 20, 20, 0.9);
+}
+
+/* Light theme adjustments */
+.light .jrpg-conversation-display {
+  --border-color: #333;
+  --background-color: rgba(240, 240, 240, 0.9);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+.light .character-name {
+  color: #333;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.light .conversation-empty {
+  color: rgba(50, 50, 50, 0.8);
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Animation when characters are added/removed */
+.conversation-character {
+  animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Special effects for magical/fantasy feel */
+.jrpg-conversation-display::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(135, 206, 235, 0.2) 50%, 
+    transparent 70%);
+  border-radius: 17px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.jrpg-conversation-display:hover::before {
+  opacity: 1;
+}
+
+/* Context menu styling (if using Foundry's context menu) */
+.context-menu .context-item {
+  transition: all 0.2s ease;
+}
+
+.context-menu .context-item:hover {
+  background: rgba(135, 206, 235, 0.2);
+  color: var(--hover-color);
+}

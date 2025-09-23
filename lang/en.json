@@ -1,0 +1,54 @@
+{
+  "jrpg-conversation": {
+    "title": "JRPG Conversation Display",
+    "settings": {
+      "displayPosition": {
+        "name": "Display Position",
+        "hint": "Choose where the conversation display appears on screen"
+      },
+      "displayOpacity": {
+        "name": "Display Opacity", 
+        "hint": "Set the opacity of the conversation display (0-100)"
+      },
+      "portraitSize": {
+        "name": "Portrait Size",
+        "hint": "Size of the character portraits in pixels"
+      },
+      "allowPlayers": {
+        "name": "Allow Players",
+        "hint": "Allow players to use the conversation display (GM only otherwise)"
+      }
+    },
+    "contextMenu": {
+      "addToConversation": "Add to Conversation",
+      "removeFromConversation": "Remove from Conversation",
+      "setAsSpeaker": "Set as Speaker"
+    },
+    "notifications": {
+      "characterAdded": "Added {name} to conversation",
+      "characterRemoved": "Removed {name} from conversation", 
+      "clearedAll": "Cleared {count} character(s) from conversation",
+      "setSpeaker": "{name} is now speaking",
+      "errorAddingCharacter": "Failed to add character to conversation"
+    },
+    "controls": {
+      "toggleDisplay": "Toggle Conversation Display",
+      "clearConversation": "Clear Conversation"
+    },
+    "ui": {
+      "emptyState": "Right-click tokens to add them to the conversation",
+      "clearAll": "Clear All",
+      "speaking": "Speaking"
+    },
+    "keybinds": {
+      "toggleDisplay": {
+        "name": "Toggle Conversation Display",
+        "hint": "Show or hide the conversation display window"
+      },
+      "clearConversation": {
+        "name": "Clear Conversation", 
+        "hint": "Remove all characters from the conversation display"
+      }
+    }
+  }
+}
