@@ -1,40 +1,72 @@
-/* Simplified CSS for testing */
+/* Intrinsic's Conversations Module - Styles */
+
+/* Main conversation display */
 .intrinsics-conversation-display {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 10px;
-  padding: 15px;
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 15px;
+  padding: 20px;
+  z-index: 1000;
   color: white;
-  font-family: Arial, sans-serif;
+  font-family: 'Signika', 'Arial', sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  min-width: 200px;
+  animation: fadeIn 0.3s ease-in;
 }
 
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Character container */
 .conversation-characters {
   display: flex;
-  gap: 10px;
+  gap: 20px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
+/* Individual character */
 .conversation-character {
-  cursor: pointer;
   text-align: center;
+  cursor: pointer;
   transition: all 0.3s ease;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
 }
 
 .conversation-character:hover {
-  transform: scale(1.1);
+  transform: translateY(-5px) scale(1.05);
+  background: rgba(135, 206, 235, 0.2);
 }
 
+/* Character portrait */
 .character-portrait {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   overflow: hidden;
-  margin-bottom: 5px;
-  border: 2px solid #fff;
+  margin-bottom: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  position: relative;
+  transition: all 0.3s ease;
 }
 
 .character-portrait img {
@@ -43,26 +75,229 @@
   object-fit: cover;
 }
 
+/* Character name */
 .character-name {
-  font-size: 12px;
-  max-width: 80px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 90px;
   word-wrap: break-word;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-.conversation-character.speaking {
-  background: rgba(255, 215, 0, 0.3);
-  border-radius: 10px;
-  padding: 5px;
-}
-
+/* Speaking character styles */
 .conversation-character.speaking .character-portrait {
   border-color: #ffd700;
-  box-shadow: 0 0 15px #ffd700;
+  box-shadow: 0 0 25px #ffd700, 0 0 40px rgba(255, 215, 0, 0.4);
+  animation: pulse 2s infinite;
 }
 
+.conversation-character.speaking .character-name {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+/* Speaking indicator badge */
+.speaking-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(45deg, #ffd700, #ffed4a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: bounce 1s infinite;
+}
+
+.speaking-indicator i {
+  font-size: 12px;
+  color: #000;
+}
+
+/* Pulse animation for speaking character */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 25px #ffd700, 0 0 40px rgba(255, 215, 0, 0.4);
+    border-color: #ffd700;
+  }
+  50% {
+    box-shadow: 0 0 35px #ffd700, 0 0 60px rgba(255, 215, 0, 0.8);
+    border-color: #ffed4a;
+  }
+}
+
+/* Bounce animation for speaking indicator */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Empty conversation state */
 .conversation-empty {
   padding: 20px;
   text-align: center;
   font-style: italic;
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Player mode indicator */
+.player-mode-indicator {
+  text-align: center;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Token HUD Buttons Container */
+.intrinsics-conversation-buttons {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 12px;
+  padding: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+  white-space: nowrap;
+  animation: slideIn 0.2s ease-out;
+}
+
+/* Slide in animation for HUD buttons */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Individual HUD buttons */
+.intrinsics-conversation-buttons button {
+  background: linear-gradient(45deg, #4a90e2, #357abd);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  min-width: 40px;
+  position: relative;
+  z-index: 100000;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button hover effects */
+.intrinsics-conversation-buttons button:hover {
+  transform: scale(1.15);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* Button active state */
+.intrinsics-conversation-buttons button:active {
+  transform: scale(1.05);
+}
+
+/* Remove button style */
+.intrinsics-conversation-buttons button.remove {
+  background: linear-gradient(45deg, #e24a4a, #bd3535);
+}
+
+/* Speaker button styles */
+.intrinsics-conversation-buttons button.speaker {
+  background: linear-gradient(45deg, #ffd700, #ffb347);
+}
+
+.intrinsics-conversation-buttons button.speaker.active {
+  background: linear-gradient(45deg, #666, #444);
+}
+
+/* Specific positioning classes for different modes */
+.intrinsics-conversation-buttons.position-bottom {
+  bottom: -75px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.intrinsics-conversation-buttons.position-bottom-far {
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.intrinsics-conversation-buttons.position-top {
+  top: -55px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.intrinsics-conversation-buttons.position-left {
+  top: 50%;
+  right: calc(100% + 15px);
+  transform: translateY(-50%);
+}
+
+.intrinsics-conversation-buttons.position-right {
+  top: 50%;
+  left: calc(100% + 15px);
+  transform: translateY(-50%);
+}
+
+/* Compatibility styles for Pathfinder 2E system */
+.pf2e .intrinsics-conversation-buttons {
+  /* Extra spacing for PF2e's additional HUD elements */
+  margin-top: 10px;
+}
+
+/* Compatibility with Token Action HUD */
+#token-action-hud ~ .intrinsics-conversation-buttons,
+.tah-container ~ .intrinsics-conversation-buttons {
+  /* Adjust position when Token Action HUD is present */
+  z-index: 100001;
+}
+
+/* High contrast mode for accessibility */
+@media (prefers-contrast: high) {
+  .intrinsics-conversation-buttons {
+    border: 3px solid #fff;
+  }
+
+  .conversation-character.speaking .character-portrait {
+    border-width: 4px;
+  }
+}
+
+/* Reduced motion mode */
+@media (prefers-reduced-motion: reduce) {
+  .intrinsics-conversation-display,
+  .intrinsics-conversation-buttons,
+  .conversation-character,
+  .intrinsics-conversation-buttons button {
+    animation: none;
+    transition: none;
+  }
 }

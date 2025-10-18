@@ -1,54 +1,46 @@
 {
-  "intrinsics-conversations": {
-    "title": "Intrinsic's Conversations",
-    "settings": {
-      "displayPosition": {
-        "name": "Display Position",
-        "hint": "Choose where the conversation display appears on screen"
+  "INTRINSICS_CONVERSATIONS": {
+    "Settings": {
+      "HudPosition": {
+        "Name": "Conversation Button Position",
+        "Hint": "Choose where conversation buttons appear relative to token HUD. 'Auto' mode intelligently positions based on other HUD elements.",
+        "Choices": {
+          "auto": "Auto (Smart positioning)",
+          "bottom": "Below HUD",
+          "bottom-far": "Far Below HUD (extra spacing)",
+          "top": "Above HUD",
+          "left": "Left of HUD",
+          "right": "Right of HUD"
+        }
       },
-      "displayOpacity": {
-        "name": "Display Opacity", 
-        "hint": "Set the opacity of the conversation display (0-100)"
-      },
-      "portraitSize": {
-        "name": "Portrait Size",
-        "hint": "Size of the character portraits in pixels"
-      },
-      "allowPlayers": {
-        "name": "Allow Players",
-        "hint": "Allow players to use the conversation display (GM only otherwise)"
+      "ButtonStyle": {
+        "Name": "Button Style",
+        "Hint": "Choose the visual style for conversation buttons",
+        "Choices": {
+          "compact": "Compact (icon only)",
+          "full": "Full (icon with text)",
+          "text": "Text only"
+        }
       }
     },
-    "contextMenu": {
-      "addToConversation": "Add to Conversation",
-      "removeFromConversation": "Remove from Conversation",
-      "setAsSpeaker": "Set as Speaker"
+    "Buttons": {
+      "Add": "Add to Conversation",
+      "Remove": "Remove from Conversation",
+      "SetSpeaker": "Set as Speaker",
+      "StopSpeaking": "Stop Speaking"
     },
-    "notifications": {
-      "characterAdded": "Added {name} to conversation",
-      "characterRemoved": "Removed {name} from conversation", 
-      "clearedAll": "Cleared {count} character(s) from conversation",
-      "setSpeaker": "{name} is now speaking",
-      "errorAddingCharacter": "Failed to add character to conversation"
+    "Notifications": {
+      "Added": "{name} added to conversation",
+      "Removed": "{name} removed from conversation",
+      "Speaking": "{name} is now speaking",
+      "NotSpeaking": "No one is speaking",
+      "ConversationCleared": "Cleared {count} character(s) from conversation",
+      "ConversationSynced": "Conversation synced - Speaking: {speaker}",
+      "ModuleLoaded": "Intrinsic's Conversations loaded successfully!"
     },
-    "controls": {
-      "toggleDisplay": "Toggle Conversation Display",
-      "clearConversation": "Clear Conversation"
-    },
-    "ui": {
-      "emptyState": "Right-click tokens to add them to the conversation",
-      "clearAll": "Clear All",
-      "speaking": "Speaking"
-    },
-    "keybinds": {
-      "toggleDisplay": {
-        "name": "Toggle Conversation Display",
-        "hint": "Show or hide the conversation display window"
-      },
-      "clearConversation": {
-        "name": "Clear Conversation", 
-        "hint": "Remove all characters from the conversation display"
-      }
+    "Display": {
+      "NoConversation": "No active conversation",
+      "ControlledByGM": "Controlled by GM"
     }
   }
 }

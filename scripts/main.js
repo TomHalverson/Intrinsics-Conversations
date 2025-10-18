@@ -337,8 +337,9 @@ class SimpleConversationDisplay {
 // Global conversation display instance
 let conversationDisplay = null;
 
-// Register game setting for fallback communication
+// Register game settings and module configurations
 Hooks.once('init', function() {
+    // Existing conversation state setting
     game.settings.register(MODULE_ID, 'conversationState', {
         scope: 'world',
         config: false,
@@ -358,6 +359,42 @@ Hooks.once('init', function() {
                 }
             }
         }
+    });
+    
+    // NEW: HUD button position setting
+    game.settings.register(MODULE_ID, 'hudPosition', {
+        name: 'Conversation Button Position',
+        hint: 'Choose where conversation buttons appear relative to token HUD',
+        scope: 'world',
+        config: true,
+        type: String,
+        choices: {
+            'auto': 'Auto (Smart positioning)',
+            'bottom': 'Below HUD',
+            'bottom-far': 'Far Below HUD (extra spacing)',
+            'top': 'Above HUD',
+            'left': 'Left of HUD',
+            'right': 'Right of HUD'
+        },
+        default: 'auto',
+        onChange: () => {
+            ui.notifications.info("Button position updated - will apply to next HUD render");
+        }
+    });
+    
+    // NEW: Button style setting
+    game.settings.register(MODULE_ID, 'buttonStyle', {
+        name: 'Button Style',
+        hint: 'Choose the visual style for conversation buttons',
+        scope: 'world',
+        config: true,
+        type: String,
+        choices: {
+            'compact': 'Compact (icon only)',
+            'full': 'Full (icon with text)',
+            'text': 'Text only'
+        },
+        default: 'compact'
     });
 });
 
@@ -436,12 +473,15 @@ Hooks.once('ready', function() {
     }
 });
 
-// GM-ONLY: Add buttons to Token HUD
-Hooks.on('renderTokenHUD', function(hud, html, data) {
+// Enhanced Token HUD with dynamic positioning
+Hooks.on('renderTokenHUD', async function(hud, html, data) {
     // Only show buttons for GM
     if (!game.user.isGM) {
         return;
     }
+    
+    // Small delay to ensure other modules have rendered their elements
+    await new Promise(resolve => setTimeout(resolve, 30));
     
     try {
         const token = canvas.tokens.get(data._id);
@@ -450,47 +490,165 @@ Hooks.on('renderTokenHUD', function(hud, html, data) {
         }
         
         const $html = html.jquery ? html : $(html);
+        const hudElement = $html[0] || $html;
         
-        // Create button container
+        // Get user preferences
+        const positionMode = game.settings.get(MODULE_ID, 'hudPosition');
+        const buttonStyle = game.settings.get(MODULE_ID, 'buttonStyle');
+        
+        // Analyze HUD structure for intelligent positioning
+        const hudBounds = hudElement.getBoundingClientRect();
+        const hudHeight = hudElement.offsetHeight || 70;
+        const hudWidth = hudElement.offsetWidth || 150;
+        
+        // Check for various HUD elements that might affect positioning
+        const hasAttributeBars = hudElement.querySelector('.attribute-bars') || 
+                                 hudElement.querySelector('.col.right') ||
+                                 hudElement.querySelector('[class*="resource"]');
+        
+        const hasStatusEffects = hudElement.querySelector('.status-effects') ||
+                                hudElement.querySelector('[class*="effect"]');
+        
+        const hasPF2eElements = hudElement.querySelector('[class*="pf2e"]') ||
+                               hudElement.querySelector('.distance-number');
+        
+        // Check if Token Action HUD or similar module is present
+        const hasTokenActionHUD = document.querySelector('#token-action-hud') ||
+                                 document.querySelector('.tah-container');
+        
+        // Determine optimal position
+        let positionStyle = '';
+        
+        switch(positionMode) {
+            case 'bottom':
+                // Standard bottom position
+                positionStyle = `
+                    bottom: -75px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                `;
+                break;
+            
+            case 'bottom-far':
+                // Extra spacing below for complex HUDs
+                positionStyle = `
+                    bottom: -100px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                `;
+                break;
+            
+            case 'right':
+                positionStyle = `
+                    top: 50% !important;
+                    left: ${hudWidth + 15}px !important;
+                    transform: translateY(-50%) !important;
+                `;
+                break;
+            
+            case 'left':
+                positionStyle = `
+                    top: 50% !important;
+                    right: ${hudWidth + 15}px !important;
+                    transform: translateY(-50%) !important;
+                `;
+                break;
+            
+            case 'top':
+                positionStyle = `
+                    top: -55px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                `;
+                break;
+            
+            case 'auto':
+            default:
+                // Intelligent positioning based on detected elements
+                if (hasTokenActionHUD) {
+                    // If Token Action HUD is present, go far to the side
+                    positionStyle = `
+                        top: 50% !important;
+                        left: ${hudWidth + 80}px !important;
+                        transform: translateY(-50%) !important;
+                    `;
+                } else if (hasAttributeBars || hasStatusEffects || hasPF2eElements) {
+                    // If there are bottom elements, add extra spacing
+                    const bottomOffset = hasAttributeBars && hasStatusEffects ? -110 : -90;
+                    positionStyle = `
+                        bottom: ${bottomOffset}px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                    `;
+                } else {
+                    // Clean HUD, use standard bottom position
+                    positionStyle = `
+                        bottom: -75px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                    `;
+                }
+                break;
+        }
+        
+        // Create button container with dynamic positioning
         const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'conversation-buttons';
+        buttonContainer.className = 'intrinsics-conversation-buttons';
         buttonContainer.style.cssText = `
             position: absolute !important;
-            bottom: -55px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
+            ${positionStyle}
             display: flex !important;
-            gap: 10px !important;
+            gap: 8px !important;
             background: rgba(0, 0, 0, 0.95) !important;
             border-radius: 12px !important;
-            padding: 10px !important;
+            padding: 8px !important;
             border: 2px solid rgba(255, 255, 255, 0.6) !important;
             backdrop-filter: blur(8px) !important;
             z-index: 99999 !important;
             box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7) !important;
             pointer-events: auto !important;
+            white-space: nowrap !important;
         `;
         
-        // Helper function to create buttons
-        function createButton(text, color, title, clickHandler) {
+        // Helper function to create buttons with configurable style
+        function createButton(iconClass, text, color, title, clickHandler) {
             const button = document.createElement('button');
-            button.innerHTML = text;
+            
+            // Determine button content based on style setting
+            let buttonContent = '';
+            switch(buttonStyle) {
+                case 'full':
+                    buttonContent = `<i class="${iconClass}"></i> <span style="margin-left: 5px;">${text}</span>`;
+                    break;
+                case 'text':
+                    buttonContent = text;
+                    break;
+                case 'compact':
+                default:
+                    buttonContent = `<i class="${iconClass}"></i>`;
+                    break;
+            }
+            
+            button.innerHTML = buttonContent;
             button.title = title;
             button.style.cssText = `
                 background: ${color} !important;
                 border: none !important;
                 border-radius: 8px !important;
-                padding: 10px 12px !important;
+                padding: ${buttonStyle === 'full' ? '8px 14px' : '10px 12px'} !important;
                 color: white !important;
                 cursor: pointer !important;
-                font-size: 16px !important;
+                font-size: ${buttonStyle === 'text' ? '13px' : '16px'} !important;
                 font-weight: bold !important;
                 transition: all 0.2s ease !important;
                 box-shadow: 0 3px 6px rgba(0,0,0,0.4) !important;
-                min-width: 40px !important;
+                min-width: ${buttonStyle === 'compact' ? '40px' : 'auto'} !important;
                 position: relative !important;
                 z-index: 100000 !important;
                 pointer-events: auto !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             `;
             
             button.addEventListener('mouseenter', () => {
@@ -513,20 +671,22 @@ Hooks.on('renderTokenHUD', function(hud, html, data) {
                     setTimeout(() => hud.clear(), 100);
                 } catch (error) {
                     console.error("🔴 Error in button click:", error);
+                    ui.notifications.error("Error executing action");
                 }
             });
             
             return button;
         }
         
-        // Add simple Add/Remove buttons only
+        // Add conversation management buttons
         if (!conversationDisplay.hasCharacter(token.id)) {
             const addButton = createButton(
-                '<i class="fas fa-plus"></i>',
+                'fas fa-plus',
+                'Add',
                 'linear-gradient(45deg, #4a90e2, #357abd)',
                 'Add to Conversation',
                 () => {
-                    console.log("🟢 HUD: Adding token and broadcasting");
+                    console.log("🟢 HUD: Adding token to conversation");
                     conversationDisplay.addCharacter(token);
                     conversationDisplay.show();
                 }
@@ -534,23 +694,62 @@ Hooks.on('renderTokenHUD', function(hud, html, data) {
             buttonContainer.appendChild(addButton);
         } else {
             const removeButton = createButton(
-                '<i class="fas fa-minus"></i>',
+                'fas fa-minus',
+                'Remove',
                 'linear-gradient(45deg, #e24a4a, #bd3535)',
                 'Remove from Conversation',
                 () => {
-                    console.log("🟢 HUD: Removing token and broadcasting");
+                    console.log("🟢 HUD: Removing token from conversation");
                     conversationDisplay.removeCharacter(token.id);
                 }
             );
             buttonContainer.appendChild(removeButton);
+            
+            // Add speaker button if character is in conversation
+            const isSpeaking = conversationDisplay.currentSpeaker === token.id;
+            const speakerButton = createButton(
+                isSpeaking ? 'fas fa-microphone-slash' : 'fas fa-microphone',
+                isSpeaking ? 'Stop' : 'Speak',
+                isSpeaking ? 
+                    'linear-gradient(45deg, #666, #444)' : 
+                    'linear-gradient(45deg, #ffd700, #ffb347)',
+                isSpeaking ? 'Stop Speaking' : 'Set as Speaker',
+                () => {
+                    if (isSpeaking) {
+                        console.log("🟢 HUD: Clearing speaker");
+                        conversationDisplay.clearSpeaker();
+                    } else {
+                        console.log("🟢 HUD: Setting as speaker");
+                        conversationDisplay.setSpeaker(token.id);
+                    }
+                }
+            );
+            buttonContainer.appendChild(speakerButton);
         }
         
-        const hudElement = $html[0] || $html;
+        // Append button container to HUD
         hudElement.appendChild(buttonContainer);
+        
+        console.log("🟢 HUD: Conversation buttons added with position mode:", positionMode);
         
     } catch (error) {
         console.error("🔴 ERROR adding Token HUD buttons:", error);
     }
 });
 
-console.log("🟢 LOADED: Script file processed");
+// Add debug command to console for testing positions
+window.intrinsicsConversations = {
+    testPosition: function(position) {
+        game.settings.set(MODULE_ID, 'hudPosition', position);
+        console.log(`🟢 Position changed to: ${position}. Click on a token to see the new button position.`);
+    },
+    getSettings: function() {
+        return {
+            position: game.settings.get(MODULE_ID, 'hudPosition'),
+            buttonStyle: game.settings.get(MODULE_ID, 'buttonStyle')
+        };
+    }
+};
+
+console.log("🟢 LOADED: Intrinsic's Conversations module fully loaded");
+console.log("💡 TIP: Use window.intrinsicsConversations.testPosition('bottom-far') to test different positions");
