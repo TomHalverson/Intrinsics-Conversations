@@ -1,4 +1,4 @@
-console.log("🟢 LOADING: Intrinsic's Conversations script starting");
+console.log("LOADING: Intrinsic's Conversations script starting");
 
 // Socket communication - using correct Foundry socket system
 const MODULE_ID = 'intrinsics-conversations';
@@ -23,7 +23,7 @@ class SimpleConversationDisplay {
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.85);
             border-radius: 15px;
-            padding: 20px;
+            padding: 35px 20px 20px 20px;
             z-index: 1000;
             color: white;
             font-family: 'Signika', sans-serif;
@@ -61,11 +61,11 @@ class SimpleConversationDisplay {
         this.updateDisplay();
         
         ui.notifications.info(`Added ${character.name} to conversation`);
-        console.log(`🟢 Added character: ${character.name}`);
+        console.log(`Added character: ${character.name}`);
         
         // Broadcast to all players if this is the GM making changes
         if (broadcast && game.user.isGM) {
-            console.log("🟢 BROADCAST: Adding character");
+            console.log("BROADCAST: Adding character");
             this.broadcastConversationState();
         }
     }
@@ -86,7 +86,7 @@ class SimpleConversationDisplay {
             
             // Broadcast to all players if this is the GM making changes
             if (broadcast && game.user.isGM) {
-                console.log("🟢 BROADCAST: Removing character");
+                console.log("BROADCAST: Removing character");
                 this.broadcastConversationState();
             }
         }
@@ -95,7 +95,7 @@ class SimpleConversationDisplay {
     setSpeaker(tokenId, broadcast = true) {
         const character = this.characters.get(tokenId);
         if (character) {
-            console.log(`🟢 SPEAKER: Setting speaker to ${character.name} (${tokenId}), broadcast: ${broadcast}, isGM: ${game.user.isGM}`);
+            console.log(`SPEAKER: Setting speaker to ${character.name} (${tokenId}), broadcast: ${broadcast}, isGM: ${game.user.isGM}`);
             
             this.currentSpeaker = tokenId;
             this.updateDisplay();
@@ -103,16 +103,16 @@ class SimpleConversationDisplay {
             
             // IMPORTANT: Always broadcast speaker changes if GM
             if (broadcast && game.user.isGM) {
-                console.log("🟢 BROADCAST: Setting speaker - broadcasting now");
+                console.log("BROADCAST: Setting speaker - broadcasting now");
                 this.broadcastConversationState();
             }
         } else {
-            console.error("🔴 SPEAKER: Character not found for tokenId:", tokenId);
+            console.error("SPEAKER: Character not found for tokenId:", tokenId);
         }
     }
     
     clearSpeaker(broadcast = true) {
-        console.log(`🟢 SPEAKER: Clearing speaker, broadcast: ${broadcast}, isGM: ${game.user.isGM}`);
+        console.log(`SPEAKER: Clearing speaker, broadcast: ${broadcast}, isGM: ${game.user.isGM}`);
         
         this.currentSpeaker = null;
         this.updateDisplay();
@@ -120,7 +120,7 @@ class SimpleConversationDisplay {
         
         // IMPORTANT: Always broadcast speaker changes if GM
         if (broadcast && game.user.isGM) {
-            console.log("🟢 BROADCAST: Clearing speaker - broadcasting now");
+            console.log("BROADCAST: Clearing speaker - broadcasting now");
             this.broadcastConversationState();
         }
     }
@@ -137,7 +137,7 @@ class SimpleConversationDisplay {
         
         // Broadcast to all players if this is the GM making changes
         if (broadcast && game.user.isGM) {
-            console.log("🟢 BROADCAST: Clearing all");
+            console.log("BROADCAST: Clearing all");
             this.broadcastConversationState();
         }
     }
@@ -145,7 +145,7 @@ class SimpleConversationDisplay {
     // Broadcast conversation state using multiple methods for reliability
     broadcastConversationState() {
         if (!game.user.isGM) {
-            console.log("🔴 SOCKET: Not GM, skipping broadcast");
+            console.log("SOCKET: Not GM, skipping broadcast");
             return;
         }
         
@@ -161,7 +161,7 @@ class SimpleConversationDisplay {
             timestamp: Date.now()
         };
         
-        console.log("🟢 SOCKET: Broadcasting conversation state", {
+        console.log("SOCKET: Broadcasting conversation state", {
             characters: conversationState.characters.length,
             currentSpeaker: conversationState.currentSpeaker,
             speakerName: conversationState.currentSpeaker ? this.characters.get(conversationState.currentSpeaker)?.name : 'None',
@@ -175,23 +175,23 @@ class SimpleConversationDisplay {
                 data: conversationState,
                 sender: game.user.id
             });
-            console.log("🟢 SOCKET: Method 1 - game.socket.emit sent successfully");
+            console.log("SOCKET: Method 1 - game.socket.emit sent successfully");
         } catch (error) {
-            console.error("🔴 SOCKET: Method 1 failed", error);
+            console.error("SOCKET: Method 1 failed", error);
         }
         
         // Method 3: Use game setting as ultimate fallback
         try {
             game.settings.set(MODULE_ID, 'conversationState', JSON.stringify(conversationState));
-            console.log("🟢 SOCKET: Method 3 - game setting updated successfully");
+            console.log("SOCKET: Method 3 - game setting updated successfully");
         } catch (error) {
-            console.error("🔴 SOCKET: Method 3 failed", error);
+            console.error("SOCKET: Method 3 failed", error);
         }
     }
     
     // Receive conversation state from GM
     receiveConversationState(conversationState) {
-        console.log("🟢 SOCKET: Player receiving conversation state", {
+        console.log("SOCKET: Player receiving conversation state", {
             characters: conversationState.characters?.length || 0,
             currentSpeaker: conversationState.currentSpeaker,
             isVisible: conversationState.isVisible
@@ -214,16 +214,16 @@ class SimpleConversationDisplay {
             
             // IMPORTANT: Set the current speaker
             this.currentSpeaker = conversationState.currentSpeaker;
-            console.log("🟢 SOCKET: Player set currentSpeaker to:", this.currentSpeaker);
+            console.log("SOCKET: Player set currentSpeaker to:", this.currentSpeaker);
             
             // Show display if GM has it visible
             if (conversationState.isVisible) {
-                console.log("🟢 SOCKET: Player showing conversation display");
+                console.log("SOCKET: Player showing conversation display");
                 this.show(); // This will call updateDisplay() if not already shown
                 // IMPORTANT: Always update display even if already visible
                 this.updateDisplay();
             } else {
-                console.log("🟢 SOCKET: Player hiding conversation display");
+                console.log("SOCKET: Player hiding conversation display");
                 this.hide();
             }
             
@@ -231,36 +231,76 @@ class SimpleConversationDisplay {
             const speakerName = conversationState.currentSpeaker ? 
                 this.characters.get(conversationState.currentSpeaker)?.name : 'No one';
             ui.notifications.info(`Conversation synced - Speaking: ${speakerName}`);
-            console.log("🟢 SOCKET: Player notification sent for speaker:", speakerName);
+            console.log("SOCKET: Player notification sent for speaker:", speakerName);
             
         } else {
-            console.log("🟢 SOCKET: Player hiding display (no characters)");
+            console.log("SOCKET: Player hiding display (no characters)");
             this.hide();
         }
     }
     
     getTokenPortrait(token) {
+        // Prioritize token texture (token art) over actor avatar
+        const tokenTexture = token.document.texture.src;
+        
+        // Use token texture if it exists and isn't the default mystery man
+        if (tokenTexture && tokenTexture !== 'icons/svg/mystery-man.svg') {
+            return tokenTexture;
+        }
+        
+        // Fall back to actor image if token texture is default or missing
         if (token.actor && token.actor.img && token.actor.img !== 'icons/svg/mystery-man.svg') {
             return token.actor.img;
         }
-        return token.document.texture.src || 'icons/svg/mystery-man.svg';
+        
+        // Final fallback to mystery man
+        return 'icons/svg/mystery-man.svg';
     }
     
     updateDisplay() {
         if (!this.element) return;
         
-        console.log("🟢 DISPLAY: Updating display, currentSpeaker:", this.currentSpeaker);
+        console.log("DISPLAY: Updating display, currentSpeaker:", this.currentSpeaker);
         
         if (this.characters.size === 0) {
             this.element.innerHTML = '<div style="padding: 20px; text-align: center; font-style: italic; color: rgba(255,255,255,0.7);">No active conversation</div>';
             return;
         }
         
-        let html = '<div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center;">';
+        // Add close button at the top (only visible for GMs)
+        let html = '';
+        if (game.user.isGM) {
+            html += `
+                <button id="conversation-close-btn" style="
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    background: linear-gradient(45deg, #e24a4a, #bd3535);
+                    border: none;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: bold;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10;
+                " title="Close Conversation">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+        }
+        
+        html += '<div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center;">';
         
         for (const character of this.characters.values()) {
             const isCurrentSpeaker = this.currentSpeaker === character.id;
-            console.log(`🟢 DISPLAY: Character ${character.name} (${character.id}) - isCurrentSpeaker: ${isCurrentSpeaker}`);
+            console.log(`DISPLAY: Character ${character.name} (${character.id}) - isCurrentSpeaker: ${isCurrentSpeaker}`);
             
             const glowStyle = isCurrentSpeaker ? 
                 'box-shadow: 0 0 25px #ffd700, 0 0 40px rgba(255, 215, 0, 0.4); border-color: #ffd700; animation: pulse 2s infinite;' : 
@@ -305,27 +345,52 @@ class SimpleConversationDisplay {
         }
         
         this.element.innerHTML = html;
-        console.log("🟢 DISPLAY: HTML updated, adding click handlers for GM:", game.user.isGM);
+        console.log("DISPLAY: HTML updated, adding click handlers for GM:", game.user.isGM);
+        
+        // Add click handler for close button (GM only)
+        if (game.user.isGM) {
+            const closeBtn = this.element.querySelector('#conversation-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('mouseenter', () => {
+                    closeBtn.style.transform = 'scale(1.15) rotate(90deg)';
+                    closeBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
+                });
+                
+                closeBtn.addEventListener('mouseleave', () => {
+                    closeBtn.style.transform = 'scale(1) rotate(0deg)';
+                    closeBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+                });
+                
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("DISPLAY: Close button clicked, clearing conversation");
+                    this.clearAll(true); // broadcast = true
+                });
+                
+                console.log("DISPLAY: Close button handler added");
+            }
+        }
         
         // Add click handlers only for GM
         if (game.user.isGM) {
             this.element.querySelectorAll('[data-character-id]').forEach(el => {
                 el.addEventListener('click', (e) => {
                     const characterId = el.dataset.characterId;
-                    console.log("🟢 DISPLAY: GM clicked character portrait:", characterId);
+                    console.log("DISPLAY: GM clicked character portrait:", characterId);
                     
                     if (this.currentSpeaker === characterId) {
-                        console.log("🟢 DISPLAY: Clearing speaker (was already speaking)");
+                        console.log("DISPLAY: Clearing speaker (was already speaking)");
                         this.clearSpeaker(true); // broadcast = true
                     } else {
-                        console.log("🟢 DISPLAY: Setting new speaker");
+                        console.log("DISPLAY: Setting new speaker");
                         this.setSpeaker(characterId, true); // broadcast = true
                     }
                 });
             });
-            console.log("🟢 DISPLAY: GM click handlers added");
+            console.log("DISPLAY: GM click handlers added");
         } else {
-            console.log("🟢 DISPLAY: Player mode - no click handlers added");
+            console.log("DISPLAY: Player mode - no click handlers added");
         }
     }
     
@@ -351,11 +416,11 @@ Hooks.once('init', function() {
                 try {
                     const data = JSON.parse(value);
                     if (data.timestamp && data.characters !== undefined) {
-                        console.log("🟢 SETTING: Player received conversation update via setting");
+                        console.log("SETTING: Player received conversation update via setting");
                         conversationDisplay.receiveConversationState(data);
                     }
                 } catch (error) {
-                    console.error("🔴 SETTING: Error parsing conversation state", error);
+                    console.error("SETTING: Error parsing conversation state", error);
                 }
             }
         }
@@ -399,8 +464,8 @@ Hooks.once('init', function() {
 });
 
 Hooks.once('ready', function() {
-    console.log("🟢 READY: Intrinsic's Conversations ready hook fired");
-    console.log(`🟢 USER: ${game.user.name} (${game.user.isGM ? 'GM' : 'Player'})`);
+    console.log("READY: Intrinsic's Conversations ready hook fired");
+    console.log(`USER: ${game.user.name} (${game.user.isGM ? 'GM' : 'Player'})`);
     
     try {
         ui.notifications.info("Intrinsic's Conversations loaded successfully!");
@@ -409,10 +474,10 @@ Hooks.once('ready', function() {
         
         // Set up socket listener using correct event name format
         const socketName = `module.${MODULE_ID}`;
-        console.log("🟢 SOCKET: Setting up socket listener for", socketName);
+        console.log("SOCKET: Setting up socket listener for", socketName);
         
         game.socket.on(socketName, (data) => {
-            console.log("🟢 SOCKET: Received socket message", {
+            console.log("SOCKET: Received socket message", {
                 action: data.action,
                 sender: data.sender,
                 isGM: game.user.isGM
@@ -420,12 +485,12 @@ Hooks.once('ready', function() {
             
             // Players should receive sync messages from GM
             if (!game.user.isGM && data.action === 'syncConversation') {
-                console.log("🟢 SOCKET: Player processing conversation sync");
+                console.log("SOCKET: Player processing conversation sync");
                 conversationDisplay.receiveConversationState(data.data);
             } else if (data.action === 'test' || data.action === 'manualTest') {
-                console.log("🟢 SOCKET: Received test message:", data.data);
+                console.log("SOCKET: Received test message:", data.data);
             } else {
-                console.log("🔴 SOCKET: Message ignored", {
+                console.log("SOCKET: Message ignored", {
                     isGM: game.user.isGM,
                     action: data.action
                 });
@@ -445,7 +510,7 @@ Hooks.once('ready', function() {
             // Test functions
             testSocket: function() {
                 if (game.user.isGM) {
-                    console.log("🟢 TEST: Manual socket test");
+                    console.log("TEST: Manual socket test");
                     game.socket.emit(socketName, {
                         action: 'manualTest',
                         data: { message: 'Manual test from GM' },
@@ -455,21 +520,21 @@ Hooks.once('ready', function() {
             },
             forceSync: function() {
                 if (game.user.isGM) {
-                    console.log("🟢 FORCE: Manual conversation sync");
+                    console.log("FORCE: Manual conversation sync");
                     conversationDisplay.broadcastConversationState();
                 }
             },
             test: function() {
-                console.log("🟢 API: Test function called");
+                console.log("API: Test function called");
                 ui.notifications.info("API test successful!");
                 return "success";
             }
         };
         
-        console.log("🟢 API: Created successfully");
+        console.log("API: Created successfully");
         
     } catch (error) {
-        console.error("🔴 ERROR in ready hook:", error);
+        console.error("ERROR in ready hook:", error);
     }
 });
 
@@ -670,7 +735,7 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
                     clickHandler();
                     setTimeout(() => hud.clear(), 100);
                 } catch (error) {
-                    console.error("🔴 Error in button click:", error);
+                    console.error("Error in button click:", error);
                     ui.notifications.error("Error executing action");
                 }
             });
@@ -686,7 +751,7 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
                 'linear-gradient(45deg, #4a90e2, #357abd)',
                 'Add to Conversation',
                 () => {
-                    console.log("🟢 HUD: Adding token to conversation");
+                    console.log("HUD: Adding token to conversation");
                     conversationDisplay.addCharacter(token);
                     conversationDisplay.show();
                 }
@@ -699,7 +764,7 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
                 'linear-gradient(45deg, #e24a4a, #bd3535)',
                 'Remove from Conversation',
                 () => {
-                    console.log("🟢 HUD: Removing token from conversation");
+                    console.log("HUD: Removing token from conversation");
                     conversationDisplay.removeCharacter(token.id);
                 }
             );
@@ -716,10 +781,10 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
                 isSpeaking ? 'Stop Speaking' : 'Set as Speaker',
                 () => {
                     if (isSpeaking) {
-                        console.log("🟢 HUD: Clearing speaker");
+                        console.log("HUD: Clearing speaker");
                         conversationDisplay.clearSpeaker();
                     } else {
-                        console.log("🟢 HUD: Setting as speaker");
+                        console.log("HUD: Setting as speaker");
                         conversationDisplay.setSpeaker(token.id);
                     }
                 }
@@ -730,10 +795,10 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
         // Append button container to HUD
         hudElement.appendChild(buttonContainer);
         
-        console.log("🟢 HUD: Conversation buttons added with position mode:", positionMode);
+        console.log("HUD: Conversation buttons added with position mode:", positionMode);
         
     } catch (error) {
-        console.error("🔴 ERROR adding Token HUD buttons:", error);
+        console.error("ERROR adding Token HUD buttons:", error);
     }
 });
 
@@ -741,7 +806,7 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
 window.intrinsicsConversations = {
     testPosition: function(position) {
         game.settings.set(MODULE_ID, 'hudPosition', position);
-        console.log(`🟢 Position changed to: ${position}. Click on a token to see the new button position.`);
+        console.log(`Position changed to: ${position}. Click on a token to see the new button position.`);
     },
     getSettings: function() {
         return {
@@ -751,5 +816,5 @@ window.intrinsicsConversations = {
     }
 };
 
-console.log("🟢 LOADED: Intrinsic's Conversations module fully loaded");
-console.log("💡 TIP: Use window.intrinsicsConversations.testPosition('bottom-far') to test different positions");
+console.log("LOADED: Intrinsic's Conversations module fully loaded");
+console.log("TIP: Use window.intrinsicsConversations.testPosition('bottom-far') to test different positions");
