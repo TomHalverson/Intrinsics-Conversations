@@ -41,6 +41,57 @@
     "Display": {
       "NoConversation": "No active conversation",
       "ControlledByGM": "Controlled by GM"
+    },
+    "DialogueAura": {
+      "Settings": {
+        "Enabled": {
+          "Name": "Enable Dialogue Auras",
+          "Hint": "Enable the dialogue aura feature for NPCs"
+        },
+        "Range": {
+          "Name": "Dialogue Aura Range (feet)",
+          "Hint": "Default detection range for dialogue auras in feet"
+        },
+        "Interval": {
+          "Name": "Dialogue Trigger Interval (seconds)",
+          "Hint": "How often to randomly trigger dialogue when in range"
+        },
+        "FloatingText": {
+          "Name": "Show Floating Text",
+          "Hint": "Display dialogue as floating text above NPCs"
+        },
+        "ChatMessage": {
+          "Name": "Show in Chat",
+          "Hint": "Also display dialogue in the chat log"
+        }
+      },
+      "ContextMenu": {
+        "Header": "Dialogue Aura",
+        "Assign": "Assign Dialogue Table",
+        "Remove": "Remove Dialogue Aura",
+        "EditRange": "Edit Aura Range"
+      },
+      "Dialogs": {
+        "AssignTitle": "Assign Dialogue Table to {token}",
+        "RangeTitle": "Edit Aura Range - {token}",
+        "TableLabel": "Select a Roll Table:",
+        "RangeLabel": "Dialogue Trigger Range (feet):",
+        "TablePlaceholder": "-- Select a Table --",
+        "AssignButton": "Assign",
+        "SaveButton": "Save",
+        "CancelButton": "Cancel"
+      },
+      "Notifications": {
+        "TableAssigned": "Assigned dialogue table \"{table}\" to {token}",
+        "TableRemoved": "Removed dialogue aura from {token}",
+        "RangeUpdated": "Updated aura range to {range} feet",
+        "AuraEnabled": "Aura enabled for {token}",
+        "AuraDisabled": "Aura disabled for {token}",
+        "NoTablesFound": "No roll tables found in the world",
+        "SelectTable": "Please select a table",
+        "InvalidRange": "Range must be between 5 and 120 feet",
+        "TriggeredDialogue": "{token} says: {dialogue}"
+      }
     }
   }
 }

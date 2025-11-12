@@ -14,7 +14,9 @@
     }
   ],
   "esmodules": [
-    "scripts/main.js"
+    "scripts/main.js",
+    "scripts/conversation-groups.js",
+    "scripts/dialogue-aura.js"
   ],
   "styles": [
     "styles/conversation-display.css"
