@@ -278,25 +278,71 @@ class DialogueAuraSystem {
             return;
         }
 
-        // Get all owned player tokens (controlled by players)
-        const playerTokens = canvas.tokens.placeables.filter(token => {
-            return token.actor && token.actor.hasPlayerOwner;
-        });
+        // Get all active non-GM users
+        const activeNonGMUsers = game.users.filter(u => !u.isGM && u.active);
 
-        if (playerTokens.length === 0) return;
+        if (activeNonGMUsers.length === 0) {
+            console.log(`AURA: No active non-GM users logged in`);
+            return;
+        }
+
+        // Get all player tokens owned by currently logged-in (active) non-GM players
+        const playerTokens = [];
+
+        // Iterate through all tokens on the canvas
+        for (const token of canvas.tokens.placeables) {
+            if (!token || !token.actor) continue;
+
+            // Check if any active (logged in) non-GM player owns this token
+            let isPlayerToken = false;
+            for (const user of activeNonGMUsers) {
+                // Check token document ownership
+                const tokenOwnership = token.document.ownership || {};
+                if (tokenOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
+                    isPlayerToken = true;
+                    break;
+                }
+
+                // Check actor ownership as fallback
+                const actor = token.actor;
+                if (actor) {
+                    const actorOwnership = actor.ownership || {};
+                    if (actorOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
+                        isPlayerToken = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isPlayerToken) {
+                playerTokens.push(token);
+            }
+        }
+
+        if (playerTokens.length === 0) {
+            console.log(`AURA: No player tokens found for aura check on "${npcToken.name}"`);
+            return;
+        }
 
         // Check each player token for range
+        let foundAnyInRange = false;
         for (let playerToken of playerTokens) {
             if (this.isTokenInRange(npcToken, playerToken, auraConfig.range)) {
+                foundAnyInRange = true;
                 // Debug logging for trigger checks
                 const now = Date.now();
                 const timeSinceLastTrigger = (now - auraConfig.lastTriggered) / 1000;
                 const interval = game.settings.get(MODULE_ID, 'dialogueAuraRandomInterval');
 
-                console.log(`AURA: Player in range of "${npcToken.name}": timeSince=${timeSinceLastTrigger.toFixed(1)}s, interval=${interval}s, canTrigger=${timeSinceLastTrigger >= interval}`);
+                console.log(`AURA: Player "${playerToken.name}" in range of "${npcToken.name}": timeSince=${timeSinceLastTrigger.toFixed(1)}s, interval=${interval}s, canTrigger=${timeSinceLastTrigger >= interval}`);
 
                 this.triggerDialogue(auraConfig, npcToken);
+                break; // Only trigger once per check cycle
             }
+        }
+
+        if (!foundAnyInRange) {
+            console.log(`AURA: No players in range of "${npcToken.name}" (range: ${auraConfig.range} feet, found ${playerTokens.length} player tokens)`);
         }
     }
 
@@ -368,16 +414,30 @@ class DialogueAuraSystem {
     }
 
     /**
+     * Strip HTML tags from text
+     */
+    stripHTML(text) {
+        if (!text) return '';
+        // Create a temporary div element to parse HTML
+        const tmp = document.createElement('div');
+        tmp.innerHTML = text;
+        return tmp.textContent || tmp.innerText || '';
+    }
+
+    /**
      * Display dialogue above token and/or in chat
      */
     async displayDialogue(token, text) {
         const showFloating = game.settings.get(MODULE_ID, 'dialogueAuraFloatingText');
         const showChat = game.settings.get(MODULE_ID, 'dialogueAuraChatMessage');
 
+        // Strip HTML tags from text for floating display
+        const cleanText = this.stripHTML(text);
+
         if (showFloating) {
-            this.showFloatingText(token, text);
+            this.showFloatingText(token, cleanText);
             // Broadcast floating text to all players
-            this.broadcastFloatingText(token, text);
+            this.broadcastFloatingText(token, cleanText);
         }
 
         if (showChat) {
@@ -404,12 +464,12 @@ class DialogueAuraSystem {
             // Create the text
             const floatingText = new PIXI.Text(text, {
                 fontFamily: 'Arial, sans-serif',
-                fontSize: 20,
+                fontSize: 14,
                 fill: 0xFFFFFF,
                 stroke: 0x000000,
-                strokeThickness: 3,
+                strokeThickness: 2,
                 wordWrap: true,
-                wordWrapWidth: 280,
+                wordWrapWidth: 240,
                 align: 'center',
                 fontWeight: 'bold'
             });
@@ -429,7 +489,7 @@ class DialogueAuraSystem {
             container.addChild(floatingText);
 
             // Position above the token
-            const startY = token.y - 80;
+            const startY = token.y - 40;
             container.position.set(token.center.x, startY);
 
             // Add to the correct layer - in Foundry v13, use the drawings layer
@@ -510,7 +570,7 @@ class DialogueAuraSystem {
                     text: text,
                     position: {
                         x: token.center.x,
-                        y: token.y - 80
+                        y: token.y - 40
                     },
                     timestamp: Date.now()
                 },
@@ -770,7 +830,12 @@ Hooks.once('ready', async function() {
         getGroup: (groupId) => window.conversationGroupsSystem.getConversationGroup(groupId),
         getAllGroups: () => window.conversationGroupsSystem.getConversationGroups(),
         getNPCConversations: (tokenId) => window.conversationGroupsSystem.getNPCConversations(tokenId),
-        getStats: () => window.conversationGroupsSystem.getConversationStats()
+        getStats: () => window.conversationGroupsSystem.getConversationStats(),
+        reorderNPCs: (groupId, npcIds) => window.conversationGroupsSystem.reorderNPCs(groupId, npcIds),
+        toggleConversation: (groupId, enabled) => window.conversationGroupsSystem.toggleConversation(groupId, enabled),
+        resetConversation: (groupId) => window.conversationGroupsSystem.resetConversation(groupId),
+        manuallyTrigger: (groupId) => window.conversationGroupsSystem.manuallyTriggerConversation(groupId),
+        getTokenConversations: (tokenId) => window.conversationGroupsSystem.getTokenConversations(tokenId)
     };
     game.modules.get(MODULE_ID).api = api;
 

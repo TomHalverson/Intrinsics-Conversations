@@ -462,7 +462,10 @@ function showCreateGroupDialog() {
                         <div class="mode-option-title">SCRIPTED Mode</div>
                         <div class="mode-option-desc">Hard-select from table by index (no randomness)</div>
                     </div>
-                    
+                    <div class="mode-option" data-mode="scripted-custom">
+                        <div class="mode-option-title">SCRIPTED CUSTOM Mode</div>
+                        <div class="mode-option-desc">Use custom text with manual speaker assignment</div>
+                    </div>
                 </div>
                 <input type="hidden" id="mode-select" value="random">
             </div>
@@ -538,7 +541,18 @@ function showCreateGroupDialog() {
                 </div>
             </div>
 
-            
+            <div id="scripted-custom-mode" class="mode-section" style="display: none;">
+                <h4>[SCRIPTED CUSTOM] Custom Dialogue Text</h4>
+                <p class="info-text">Enter custom dialogue for each NPC in order</p>
+                ${selectedTokens.map(token => `
+                    <div class="npc-assignment">
+                        <label><strong>${token.name}'s Dialogue:</strong></label>
+                        <textarea id="dialogue-${token.id}" placeholder="What does ${token.name} say?" style="height: 60px; resize: vertical;"></textarea>
+                    </div>
+                `).join('')}
+            </div>
+
+
         </div>
     `;
 
@@ -761,17 +775,31 @@ function showListGroupsDialog() {
         else if (group.mode === 'scripted-custom') modeDisplay = '[SCRIPTED CUSTOM] Scripted (Custom)';
         else if (group.mode === 'turn-taking') modeDisplay = '[TURN-TAKING] Turn-Taking';
 
+        // Add edit button for modes that support NPC ordering
+        const canReorder = ['scripted', 'scripted-custom', 'turn-taking'].includes(group.mode);
+        const editButton = canReorder ? `<button class="conv-edit-order-btn" data-group-id="${group.groupId}" style="margin-left: 10px; padding: 4px 8px; background: #3d6b9e; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Edit Order</button>` : '';
+
+        // Add pause/resume and reset buttons
+        const pauseResumeButton = group.enabled
+            ? `<button class="conv-pause-btn" data-group-id="${group.groupId}" style="padding: 4px 8px; background: #d64545; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Pause</button>`
+            : `<button class="conv-resume-btn" data-group-id="${group.groupId}" style="padding: 4px 8px; background: #45b049; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Resume</button>`;
+
+        const resetButton = `<button class="conv-reset-btn" data-group-id="${group.groupId}" style="margin-left: 5px; padding: 4px 8px; background: #9e6b3d; color: #e0e0e0; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">Reset</button>`;
+
         groupsList += `
             <div class="group-item">
-                <p><strong>${group.name}</strong></p>
+                <p><strong>${group.name}</strong> ${editButton}</p>
                 <p style="font-size: 12px;">
                     <strong>Mode:</strong> ${modeDisplay} |
                     <strong>Range:</strong> ${group.range} ft |
                     <strong>Delay:</strong> ${group.delay} sec |
-                    <strong>Status:</strong> ${group.enabled ? '[ON] Enabled' : '[OFF] Disabled'}
+                    <strong>Status:</strong> ${group.enabled ? '[ON] Enabled' : '[OFF] Paused'}
                 </p>
                 <p class="info-text"><strong>NPCs:</strong> ${npcNames}</p>
-                <p class="info-text">ID: ${group.groupId}</p>
+                <p style="margin-top: 8px;">
+                    ${pauseResumeButton}
+                    ${resetButton}
+                </p>
             </div>
         `;
     }
@@ -785,7 +813,7 @@ function showListGroupsDialog() {
         </div>
     `;
 
-    new Dialog({
+    const dialog = new Dialog({
         title: "Conversation Groups",
         content: fullContent,
         buttons: {
@@ -795,7 +823,190 @@ function showListGroupsDialog() {
             }
         },
         default: 'close'
-    }).render(true);
+    });
+
+    dialog.render(true);
+
+    // Add event handlers for buttons
+    setTimeout(() => {
+        // Edit order buttons
+        document.querySelectorAll('.conv-edit-order-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const groupId = e.target.getAttribute('data-group-id');
+                dialog.close();
+                showEditNPCOrderDialog(groupId);
+            });
+        });
+
+        // Pause buttons
+        document.querySelectorAll('.conv-pause-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const groupId = e.target.getAttribute('data-group-id');
+                await conversationGroups.toggleConversation(groupId, false);
+                dialog.close();
+                setTimeout(() => showListGroupsDialog(), 100);
+            });
+        });
+
+        // Resume buttons
+        document.querySelectorAll('.conv-resume-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const groupId = e.target.getAttribute('data-group-id');
+                await conversationGroups.toggleConversation(groupId, true);
+                dialog.close();
+                setTimeout(() => showListGroupsDialog(), 100);
+            });
+        });
+
+        // Reset buttons
+        document.querySelectorAll('.conv-reset-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const groupId = e.target.getAttribute('data-group-id');
+                await conversationGroups.resetConversation(groupId);
+                dialog.close();
+                setTimeout(() => showListGroupsDialog(), 100);
+            });
+        });
+    }, 100);
+}
+
+/**
+ * Show dialog to edit NPC speaking order for a conversation group
+ */
+function showEditNPCOrderDialog(groupId) {
+    const group = conversationGroups.getConversationGroup(groupId);
+    if (!group) {
+        ui.notifications.error('Conversation group not found');
+        return;
+    }
+
+    // Only allow editing for modes that support ordering
+    if (!['scripted', 'scripted-custom', 'turn-taking'].includes(group.mode)) {
+        ui.notifications.warn('This conversation mode does not support NPC ordering');
+        return;
+    }
+
+    // Build NPC list with reorder controls
+    const npcListHTML = group.npcs.map((npcId, idx) => {
+        const token = canvas.tokens.get(npcId);
+        const npcName = token ? token.name : npcId;
+        return `
+            <div class="npc-order-item" data-npc-id="${npcId}">
+                <div class="npc-order-number">${idx + 1}</div>
+                <div class="npc-order-name">${npcName}</div>
+                <button type="button" class="npc-order-button npc-order-up" ${idx === 0 ? 'disabled style="opacity: 0.5;"' : ''}>UP</button>
+                <button type="button" class="npc-order-button npc-order-down" ${idx === group.npcs.length - 1 ? 'disabled style="opacity: 0.5;"' : ''}>DOWN</button>
+            </div>
+        `;
+    }).join('');
+
+    const dialogContent = `
+        ${DARK_MODE_STYLES}
+        <div class="conv-dialog-container">
+            <p style="margin-bottom: 15px;"><strong>Edit Speaking Order for: ${group.name}</strong></p>
+            <p class="info-text">Use UP/DOWN buttons to reorder how NPCs take turns speaking</p>
+
+            <div class="npc-order-list" id="npc-order-list">
+                ${npcListHTML}
+            </div>
+
+            <p class="info-text" style="margin-top: 15px;">
+                <strong>Mode:</strong> ${group.mode === 'scripted' ? 'Scripted (Table)' : group.mode === 'scripted-custom' ? 'Scripted (Custom)' : 'Turn-Taking'}
+            </p>
+        </div>
+    `;
+
+    const dialog = new Dialog({
+        title: `Edit NPC Order - ${group.name}`,
+        content: dialogContent,
+        buttons: {
+            save: {
+                icon: '<i class="fas fa-check"></i>',
+                label: 'Save Order',
+                callback: async (html) => {
+                    // Get new NPC order from the DOM
+                    const newOrder = [];
+                    html.find('.npc-order-item').each(function() {
+                        newOrder.push($(this).attr('data-npc-id'));
+                    });
+
+                    // Reorder NPCs in the conversation group
+                    const success = await conversationGroups.reorderNPCs(groupId, newOrder);
+                    if (success) {
+                        // Reopen the list dialog
+                        setTimeout(() => showListGroupsDialog(), 200);
+                    }
+                }
+            },
+            cancel: {
+                icon: '<i class="fas fa-times"></i>',
+                label: 'Cancel'
+            }
+        },
+        default: 'save'
+    });
+
+    dialog.render(true);
+
+    // Add reordering functionality
+    setTimeout(() => {
+        const npcOrderList = document.getElementById('npc-order-list');
+        if (npcOrderList) {
+            npcOrderList.addEventListener('click', (e) => {
+                const button = e.target;
+                if (!button.classList.contains('npc-order-button')) return;
+
+                const item = button.closest('.npc-order-item');
+                const items = Array.from(npcOrderList.querySelectorAll('.npc-order-item'));
+                const currentIndex = items.indexOf(item);
+
+                if (button.classList.contains('npc-order-up') && currentIndex > 0) {
+                    // Swap with previous item
+                    const prevItem = items[currentIndex - 1];
+                    npcOrderList.insertBefore(item, prevItem);
+                    updateNPCOrderNumbers();
+                    updateNPCOrderButtons();
+                } else if (button.classList.contains('npc-order-down') && currentIndex < items.length - 1) {
+                    // Swap with next item
+                    const nextItem = items[currentIndex + 1];
+                    npcOrderList.insertBefore(nextItem, item);
+                    updateNPCOrderNumbers();
+                    updateNPCOrderButtons();
+                }
+            });
+        }
+
+        function updateNPCOrderNumbers() {
+            const items = npcOrderList.querySelectorAll('.npc-order-item');
+            items.forEach((item, idx) => {
+                item.querySelector('.npc-order-number').textContent = idx + 1;
+            });
+        }
+
+        function updateNPCOrderButtons() {
+            const items = npcOrderList.querySelectorAll('.npc-order-item');
+            items.forEach((item, idx) => {
+                const upBtn = item.querySelector('.npc-order-up');
+                const downBtn = item.querySelector('.npc-order-down');
+
+                if (idx === 0) {
+                    upBtn.disabled = true;
+                    upBtn.style.opacity = '0.5';
+                } else {
+                    upBtn.disabled = false;
+                    upBtn.style.opacity = '1';
+                }
+
+                if (idx === items.length - 1) {
+                    downBtn.disabled = true;
+                    downBtn.style.opacity = '0.5';
+                } else {
+                    downBtn.disabled = false;
+                    downBtn.style.opacity = '1';
+                }
+            });
+        }
+    }, 100);
 }
 
 /**

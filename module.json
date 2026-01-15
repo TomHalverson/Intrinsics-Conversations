@@ -16,7 +16,8 @@
   "esmodules": [
     "scripts/main.js",
     "scripts/conversation-groups.js",
-    "scripts/dialogue-aura.js"
+    "scripts/dialogue-aura.js",
+    "scripts/combat-dialogue.js"
   ],
   "styles": [
     "styles/conversation-display.css"

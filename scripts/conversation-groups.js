@@ -145,16 +145,204 @@ class ConversationGroupsSystem {
     }
 
     /**
+     * Reorder NPCs in a conversation group (changes speech order)
+     */
+    async reorderNPCs(groupId, npcIds) {
+        const conversation = this.conversationGroups.get(groupId);
+        if (!conversation) {
+            ui.notifications.error("Conversation group not found");
+            return false;
+        }
+
+        // Validate that all provided IDs are currently in the conversation
+        if (npcIds.length !== conversation.npcs.length || !npcIds.every(id => conversation.npcs.includes(id))) {
+            ui.notifications.error("Invalid NPC list for reordering");
+            return false;
+        }
+
+        // Update the NPC order
+        conversation.npcs = [...npcIds];
+
+        // Reset conversation history so it starts from the beginning with new order
+        this.conversationHistory.delete(groupId);
+
+        // Save changes
+        await this.saveConversationGroups();
+
+        console.log(`CONV: Reordered NPCs in conversation group "${conversation.name}"`);
+        ui.notifications.info(`Updated speech order for: ${conversation.name}`);
+
+        return true;
+    }
+
+    /**
+     * Toggle a conversation group enabled/disabled
+     */
+    async toggleConversation(groupId, enabled) {
+        const conversation = this.conversationGroups.get(groupId);
+        if (!conversation) {
+            ui.notifications.error("Conversation group not found");
+            return false;
+        }
+
+        conversation.enabled = enabled;
+        await this.saveConversationGroups();
+
+        const status = enabled ? 'enabled' : 'paused';
+        console.log(`CONV: ${status} conversation "${conversation.name}"`);
+        ui.notifications.info(`Conversation "${conversation.name}" ${status}`);
+
+        return true;
+    }
+
+    /**
+     * Reset a conversation to the beginning
+     */
+    async resetConversation(groupId) {
+        const conversation = this.conversationGroups.get(groupId);
+        if (!conversation) {
+            ui.notifications.error("Conversation group not found");
+            return false;
+        }
+
+        this.conversationHistory.delete(groupId);
+        this.activeConversations.delete(groupId);
+
+        console.log(`CONV: Reset conversation "${conversation.name}" to beginning`);
+        ui.notifications.info(`Conversation "${conversation.name}" reset to start`);
+
+        return true;
+    }
+
+    /**
+     * Manually trigger a conversation group (bypasses range and cooldown checks)
+     * Plays through the entire conversation from the beginning
+     */
+    async manuallyTriggerConversation(groupId) {
+        const conversation = this.conversationGroups.get(groupId);
+        if (!conversation) {
+            ui.notifications.error("Conversation group not found");
+            return false;
+        }
+
+        if (!conversation.enabled) {
+            ui.notifications.warn(`Conversation "${conversation.name}" is paused. Enable it first or it won't progress.`);
+            return false;
+        }
+
+        // Reset conversation to the beginning
+        this.conversationHistory.delete(groupId);
+        this.activeConversations.delete(groupId);
+
+        console.log(`CONV: Manually playing full conversation "${conversation.name}" from start`);
+        ui.notifications.info(`Playing conversation: ${conversation.name}`);
+
+        // Determine how many lines to play based on mode
+        let totalLines = 0;
+
+        if (conversation.mode === 'scripted') {
+            const table = game.tables.get(conversation.sharedTableId);
+            if (!table) {
+                ui.notifications.error("Roll table not found");
+                return false;
+            }
+            totalLines = table.results.size;
+        } else if (conversation.mode === 'scripted-custom') {
+            totalLines = conversation.customLines?.length || 0;
+        } else if (conversation.mode === 'turn-taking') {
+            // For turn-taking, play one line per NPC
+            totalLines = conversation.npcs.length;
+        } else if (conversation.mode === 'random') {
+            // For random mode, play one random line per NPC
+            totalLines = conversation.npcs.length;
+        }
+
+        if (totalLines === 0) {
+            ui.notifications.warn("No lines to play in this conversation");
+            return false;
+        }
+
+        // Play through all lines with delays
+        const delay = conversation.delay * 1000; // Convert to milliseconds
+
+        for (let i = 0; i < totalLines; i++) {
+            // Trigger the next line
+            await this.triggerConversation(groupId, conversation);
+
+            // Wait before next line (but not after the last one)
+            if (i < totalLines - 1) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        console.log(`CONV: Finished playing conversation "${conversation.name}"`);
+  
+
+        return true;
+    }
+
+    /**
+     * Get all conversation groups that a token belongs to
+     */
+    getTokenConversations(tokenId) {
+        const groups = [];
+        for (let [groupId, conversation] of this.conversationGroups) {
+            if (conversation.npcs.includes(tokenId)) {
+                groups.push({
+                    groupId: groupId,
+                    name: conversation.name,
+                    mode: conversation.mode,
+                    enabled: conversation.enabled
+                });
+            }
+        }
+        return groups;
+    }
+
+    /**
      * Check if any NPC in a group is within range of a player
      */
     isConversationInRange(groupId) {
         const conversation = this.conversationGroups.get(groupId);
         if (!conversation || !conversation.enabled) return false;
 
-        // Get all player tokens
-        const playerTokens = canvas.tokens.placeables.filter(token => {
-            return token.actor && token.actor.hasPlayerOwner;
-        });
+        // Get all active non-GM users
+        const activeNonGMUsers = game.users.filter(u => !u.isGM && u.active);
+
+        if (activeNonGMUsers.length === 0) return false;
+
+        // Get all player tokens owned by currently logged-in (active) non-GM players
+        const playerTokens = [];
+
+        // Iterate through all tokens on the canvas
+        for (const token of canvas.tokens.placeables) {
+            if (!token || !token.actor) continue;
+
+            // Check if any active (logged in) non-GM player owns this token
+            let isPlayerToken = false;
+            for (const user of activeNonGMUsers) {
+                // Check token document ownership
+                const tokenOwnership = token.document.ownership || {};
+                if (tokenOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
+                    isPlayerToken = true;
+                    break;
+                }
+
+                // Check actor ownership as fallback
+                const actor = token.actor;
+                if (actor) {
+                    const actorOwnership = actor.ownership || {};
+                    if (actorOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
+                        isPlayerToken = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isPlayerToken) {
+                playerTokens.push(token);
+            }
+        }
 
         if (playerTokens.length === 0) return false;
 
@@ -196,7 +384,7 @@ class ConversationGroupsSystem {
     /**
      * Trigger a scripted conversation with a roll table
      * Hard-selects lines by index instead of rolling
-     * Cycles through both NPCs and table entries
+     * NPCs alternate speaking consecutive lines from the table
      */
     async triggerScriptedTableConversation(groupId, conversation) {
         // Get the shared table
@@ -206,7 +394,7 @@ class ConversationGroupsSystem {
             return;
         }
 
-        // Get current line in the conversation (cycles through all table entries across all NPCs)
+        // Get current line in the conversation
         let currentLine = this.conversationHistory.get(groupId) || 0;
 
         // Convert results collection to array
@@ -216,12 +404,19 @@ class ConversationGroupsSystem {
             return;
         }
 
-        // Determine which NPC and which table entry
-        // Each NPC gets a unique line from the table
-        const npcIndex = currentLine % conversation.npcs.length;
-        const tableIndex = currentLine % resultsArray.length;
+        // Check if we've reached the end of the table
+        if (currentLine >= resultsArray.length) {
+            console.log(`CONV: Conversation "${conversation.name}" has reached the end. Pausing.`);
+            conversation.enabled = false;
+            await this.saveConversationGroups();
+            //ui.notifications.info(`Conversation "${conversation.name}" completed and paused`);
+            return;
+        }
 
+        // Determine which NPC speaks (alternates based on current line)
+        const npcIndex = currentLine % conversation.npcs.length;
         const npcId = conversation.npcs[npcIndex];
+
         if (!npcId) {
             console.error(`CONV: NPC not found at index ${npcIndex}`);
             return;
@@ -235,16 +430,16 @@ class ConversationGroupsSystem {
             return;
         }
 
-        // Get the table entry
-        const tableEntry = resultsArray[tableIndex];
+        // Get the table entry at current line
+        const tableEntry = resultsArray[currentLine];
 
         if (tableEntry) {
             const dialogue = tableEntry.text;
-            console.log(`CONV: "${npcToken.name}" says (scripted table): "${dialogue}"`);
+            console.log(`CONV: "${npcToken.name}" says (scripted table): "${dialogue}" [Line ${currentLine + 1}/${resultsArray.length}]`);
             await this.dialogueAuraSystem.displayDialogue(npcToken, dialogue);
         }
 
-        // Move to next line (continues indefinitely through both NPCs and table entries)
+        // Move to next line
         this.conversationHistory.set(groupId, currentLine + 1);
     }
 

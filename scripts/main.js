@@ -13,9 +13,34 @@ class SimpleConversationDisplay {
     
     show() {
         if (this.element) return;
-        
+
+        // Auto-detect display scale based on resolution
+        const screenWidth = window.innerWidth;
+        const pixelRatio = window.devicePixelRatio || 1;
+        const effectiveWidth = screenWidth * pixelRatio;
+
+        let padding = '22px 14px 14px 14px';
+        let minWidth = '140px';
+        let fontSize = '13px';
+        let portraitSize = '80px';
+
+        if (effectiveWidth < 1280) {
+            // Small screens - reduce everything
+            padding = '18px 11px 11px 11px';
+            minWidth = '110px';
+            fontSize = '11px';
+            portraitSize = '70px';
+        } else if (effectiveWidth >= 2560) {
+            // 4K/very large screens - increase size
+            padding = '30px 18px 18px 18px';
+            minWidth = '200px';
+            fontSize = '14px';
+            portraitSize = '100px';
+        }
+
         this.element = document.createElement('div');
         this.element.id = 'intrinsics-conversation-display';
+        this.element.dataset.screenSize = effectiveWidth < 1280 ? 'small' : effectiveWidth >= 2560 ? 'large' : 'normal';
         this.element.style.cssText = `
             position: fixed;
             bottom: 20px;
@@ -23,16 +48,18 @@ class SimpleConversationDisplay {
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.85);
             border-radius: 15px;
-            padding: 35px 20px 20px 20px;
+            padding: ${padding};
             z-index: 1000;
             color: white;
             font-family: 'Signika', sans-serif;
             backdrop-filter: blur(8px);
             border: 2px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            min-width: 200px;
+            min-width: ${minWidth};
+            --portrait-size: ${portraitSize};
+            --font-size: ${fontSize};
         `;
-        
+
         document.body.appendChild(this.element);
         this.updateDisplay();
     }
@@ -307,15 +334,15 @@ class SimpleConversationDisplay {
                 'border-color: rgba(255,255,255,0.6);';
             
             html += `
-                <div style="text-align: center; cursor: ${game.user.isGM ? 'pointer' : 'default'}; transition: all 0.3s ease; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05);" 
+                <div style="text-align: center; cursor: ${game.user.isGM ? 'pointer' : 'default'}; transition: all 0.3s ease; padding: 8px; border-radius: 12px; background: rgba(255,255,255,0.05);"
                      data-character-id="${character.id}"
                      ${game.user.isGM ? `onmouseover="this.style.transform='translateY(-5px) scale(1.05)'; this.style.background='rgba(135, 206, 235, 0.2)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.background='rgba(255,255,255,0.05)'"` : ''}>
-                    <div style="width: 90px; height: 90px; border-radius: 50%; overflow: hidden; margin-bottom: 10px; border: 3px solid; position: relative; ${glowStyle}">
-                        <img src="${character.portrait}" alt="${character.name}" 
+                    <div style="width: var(--portrait-size, 80px); height: var(--portrait-size, 80px); border-radius: 50%; overflow: hidden; margin-bottom: 8px; border: 3px solid; position: relative; ${glowStyle}">
+                        <img src="${character.portrait}" alt="${character.name}"
                              style="width: 100%; height: 100%; object-fit: cover;" />
-                        ${isCurrentSpeaker ? '<div style="position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; background: linear-gradient(45deg, #ffd700, #ffed4a); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.4); animation: bounce 1s infinite;"><i class="fas fa-comment" style="font-size: 12px; color: #000;"></i></div>' : ''}
+                        ${isCurrentSpeaker ? '<div style="position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; background: linear-gradient(45deg, #ffd700, #ffed4a); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.4); animation: bounce 1s infinite;"><i class="fas fa-comment" style="font-size: 10px; color: #000;"></i></div>' : ''}
                     </div>
-                    <div style="font-size: 13px; font-weight: 600; max-width: 90px; word-wrap: break-word; line-height: 1.2; ${isCurrentSpeaker ? 'color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);' : 'color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);'}">${character.name}</div>
+                    <div style="font-size: var(--font-size, 13px); font-weight: 600; max-width: var(--portrait-size, 80px); word-wrap: break-word; line-height: 1.2; ${isCurrentSpeaker ? 'color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);' : 'color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);'}">${character.name}</div>
                 </div>
             `;
         }
@@ -461,6 +488,22 @@ Hooks.once('init', function() {
         },
         default: 'compact'
     });
+
+    // NEW: Button size setting for responsive scaling
+    game.settings.register(MODULE_ID, 'buttonSize', {
+        name: 'Button Size',
+        hint: 'Adjust button size based on screen resolution (Auto for automatic detection)',
+        scope: 'client',
+        config: true,
+        type: String,
+        choices: {
+            'auto': 'Auto (Based on resolution)',
+            'small': 'Small (90% size)',
+            'normal': 'Normal (100% size)',
+            'large': 'Large (110% size)'
+        },
+        default: 'auto'
+    });
 });
 
 Hooks.once('ready', function() {
@@ -560,6 +603,29 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
         // Get user preferences
         const positionMode = game.settings.get(MODULE_ID, 'hudPosition');
         const buttonStyle = game.settings.get(MODULE_ID, 'buttonStyle');
+        let buttonSize = game.settings.get(MODULE_ID, 'buttonSize');
+
+        // Auto-detect button size based on screen resolution if set to auto
+        if (buttonSize === 'auto') {
+            const screenWidth = window.innerWidth;
+            const pixelRatio = window.devicePixelRatio || 1;
+
+            // Adjust thresholds for high-DPI displays
+            const effectiveWidth = screenWidth * pixelRatio;
+
+            if (effectiveWidth < 1280) {
+                // Small screens (phones, small tablets, low-res monitors)
+                buttonSize = 'small';
+            } else if (effectiveWidth >= 1280 && effectiveWidth < 1920) {
+                // Medium screens (tablets, 720p-1080p monitors)
+                buttonSize = 'normal';
+            } else {
+                // Large screens (1440p and higher, 4K displays)
+                buttonSize = 'large';
+            }
+
+            console.log(`HUD: Auto-detected button size - screenWidth: ${screenWidth}px, devicePixelRatio: ${pixelRatio}, effectiveWidth: ${effectiveWidth.toFixed(0)}px -> ${buttonSize}`);
+        }
         
         // Analyze HUD structure for intelligent positioning
         const hudBounds = hudElement.getBoundingClientRect();
@@ -678,7 +744,7 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
         // Helper function to create buttons with configurable style
         function createButton(iconClass, text, color, title, clickHandler) {
             const button = document.createElement('button');
-            
+
             // Determine button content based on style setting
             let buttonContent = '';
             switch(buttonStyle) {
@@ -693,21 +759,40 @@ Hooks.on('renderTokenHUD', async function(hud, html, data) {
                     buttonContent = `<i class="${iconClass}"></i>`;
                     break;
             }
-            
+
+            // Calculate size scale factor
+            let sizeScale = 1;
+            let padScale = 1;
+            switch(buttonSize) {
+                case 'small':
+                    sizeScale = 0.9;
+                    padScale = 0.85;
+                    break;
+                case 'large':
+                    sizeScale = 1.1;
+                    padScale = 1.15;
+                    break;
+                case 'normal':
+                default:
+                    sizeScale = 1;
+                    padScale = 1;
+                    break;
+            }
+
             button.innerHTML = buttonContent;
             button.title = title;
             button.style.cssText = `
                 background: ${color} !important;
                 border: none !important;
                 border-radius: 8px !important;
-                padding: ${buttonStyle === 'full' ? '8px 14px' : '10px 12px'} !important;
+                padding: ${buttonStyle === 'full' ? (8 * padScale) + 'px ' + (14 * padScale) + 'px' : (10 * padScale) + 'px ' + (12 * padScale) + 'px'} !important;
                 color: white !important;
                 cursor: pointer !important;
-                font-size: ${buttonStyle === 'text' ? '13px' : '16px'} !important;
+                font-size: ${buttonStyle === 'text' ? (13 * sizeScale) + 'px' : (16 * sizeScale) + 'px'} !important;
                 font-weight: bold !important;
                 transition: all 0.2s ease !important;
                 box-shadow: 0 3px 6px rgba(0,0,0,0.4) !important;
-                min-width: ${buttonStyle === 'compact' ? '40px' : 'auto'} !important;
+                min-width: ${buttonStyle === 'compact' ? (40 * sizeScale) + 'px' : 'auto'} !important;
                 position: relative !important;
                 z-index: 100000 !important;
                 pointer-events: auto !important;
