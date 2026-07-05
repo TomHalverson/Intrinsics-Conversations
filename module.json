@@ -1,8 +1,8 @@
 {
   "id": "intrinsics-conversations",
   "title": "Intrinsic's Conversations",
-  "description": "A JRPG-style conversation display that allows you to show token portraits and indicate who is currently speaking",
-  "version": "1.1.0",
+  "description": "JRPG-style conversation display, CRPG-style branching dialogue trees, and ambient/combat NPC dialogue for Foundry VTT",
+  "version": "2.1.0",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -14,10 +14,7 @@
     }
   ],
   "esmodules": [
-    "scripts/main.js",
-    "scripts/conversation-groups.js",
-    "scripts/dialogue-aura.js",
-    "scripts/combat-dialogue.js"
+    "scripts/main.js"
   ],
   "styles": [
     "styles/conversation-display.css"

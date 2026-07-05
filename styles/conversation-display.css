@@ -1,334 +1,1531 @@
-/* Intrinsic's Conversations Module - Styles */
+/* ============================================================ */
+/* Intrinsic's Conversations                                      */
+/* Theming matches Intrinsics Lorebook: --icv-* variables on the  */
+/* .icv-app root class, with the same selectable themes.          */
+/*                                                                */
+/* Sections:                                                      */
+/*   0. Variables + themes                                        */
+/*   1. Conversation strip (.icv-strip)                           */
+/*   2. Token HUD buttons (.icv-hud)                              */
+/*   3. Player dialogue modal (#intrinsics-dialogue-modal, idm-)  */
+/*   4. Dialogue tree editor (#intrinsics-dialogue-editor, ide-)  */
+/*   5. GM dialogue hub (#intrinsics-dialogue-hub, idh-)          */
+/*   6. Accessibility                                             */
+/* ============================================================ */
 
-/* Main conversation display */
-.intrinsics-conversation-display {
+/* ------------------------------------------------------------ */
+/* 0. Variables (default: dark slate with purple accents)         */
+/* ------------------------------------------------------------ */
+
+.icv-app {
+  --icv-bg-primary: #1F2937;
+  --icv-bg-secondary: #111827;
+  --icv-bg-card: #1F2937;
+  --icv-bg-hover: rgba(96, 165, 250, 0.1);
+
+  --icv-border-color: #374151;
+  --icv-border-highlight: #4B5563;
+
+  --icv-text-primary: #E5E7EB;
+  --icv-text-secondary: #D1D5DB;
+  --icv-text-muted: #9CA3AF;
+
+  --icv-purple-gradient: linear-gradient(135deg, #35136bff 0%, #2e0e61ff 100%);
+  --icv-purple-hover: linear-gradient(135deg, #4318a1 0%, #3a1178 100%);
+
+  --icv-accent-green: #10b981;
+  --icv-accent-blue: #60a5fa;
+  --icv-accent-red: #ef4444;
+  --icv-accent-yellow: #fbbf24;
+  --icv-accent-purple: #9b59b6;
+
+  font-family: 'Signika', 'Arial', sans-serif;
+  color: var(--icv-text-primary);
+}
+
+/* Selectable themes — same palettes as Intrinsics Lorebook */
+
+.icv-app.icv-theme-parchment {
+  --icv-bg-primary: #f3ead7;
+  --icv-bg-secondary: #e8dbbf;
+  --icv-bg-card: #faf4e4;
+  --icv-bg-hover: rgba(140, 94, 33, 0.12);
+  --icv-border-color: #c9b388;
+  --icv-border-highlight: #a98e5f;
+  --icv-text-primary: #3b2f1d;
+  --icv-text-secondary: #54452c;
+  --icv-text-muted: #84714e;
+  --icv-purple-gradient: linear-gradient(135deg, #7c2128 0%, #5d161c 100%);
+  --icv-purple-hover: linear-gradient(135deg, #94303a 0%, #731d26 100%);
+  --icv-accent-green: #2f7d4f;
+  --icv-accent-blue: #2e5f8a;
+  --icv-accent-red: #a32430;
+  --icv-accent-yellow: #9a6b08;
+  --icv-accent-purple: #6d3f8e;
+}
+
+/* Active tab / primary button text must stay light on the wax-seal red. */
+.icv-app.icv-theme-parchment .idh-tab.active,
+.icv-app.icv-theme-parchment .idh-btn.primary,
+.icv-app.icv-theme-parchment .ide-save,
+.icv-app.icv-theme-parchment .ide-add-node,
+.icv-app.icv-theme-parchment .ide-node-item.selected,
+.icv-app.icv-theme-parchment .idm-choice:hover {
+  color: #f3ead7 !important;
+}
+.icv-app.icv-theme-parchment .ide-node-item.selected .ide-node-item-id,
+.icv-app.icv-theme-parchment .ide-node-item.selected .ide-node-item-preview {
+  color: #f3ead7;
+}
+
+.icv-app.icv-theme-abyss {
+  --icv-bg-primary: #0d1b2a;
+  --icv-bg-secondary: #081220;
+  --icv-bg-card: #11233a;
+  --icv-bg-hover: rgba(45, 212, 191, 0.1);
+  --icv-border-color: #1d3a57;
+  --icv-border-highlight: #2c5b85;
+  --icv-text-primary: #dceefb;
+  --icv-text-secondary: #b6d4ea;
+  --icv-text-muted: #7d9cb8;
+  --icv-purple-gradient: linear-gradient(135deg, #0f4c5c 0%, #0a3542 100%);
+  --icv-purple-hover: linear-gradient(135deg, #156478 0%, #0f4c5c 100%);
+  --icv-accent-green: #2dd4bf;
+  --icv-accent-blue: #38bdf8;
+  --icv-accent-red: #f87171;
+  --icv-accent-yellow: #fcd34d;
+  --icv-accent-purple: #818cf8;
+}
+
+.icv-app.icv-theme-verdant {
+  --icv-bg-primary: #14211a;
+  --icv-bg-secondary: #0c1610;
+  --icv-bg-card: #1a2b21;
+  --icv-bg-hover: rgba(212, 175, 55, 0.1);
+  --icv-border-color: #2b4233;
+  --icv-border-highlight: #3f5e49;
+  --icv-text-primary: #e8f0e4;
+  --icv-text-secondary: #c8d8c2;
+  --icv-text-muted: #8fa589;
+  --icv-purple-gradient: linear-gradient(135deg, #1e5631 0%, #143d22 100%);
+  --icv-purple-hover: linear-gradient(135deg, #2a6e41 0%, #1e5631 100%);
+  --icv-accent-green: #4ade80;
+  --icv-accent-blue: #60a5fa;
+  --icv-accent-red: #ef6c5a;
+  --icv-accent-yellow: #d4af37;
+  --icv-accent-purple: #b08bd0;
+}
+
+.icv-app.icv-theme-ember {
+  --icv-bg-primary: #211a17;
+  --icv-bg-secondary: #16100d;
+  --icv-bg-card: #2a211c;
+  --icv-bg-hover: rgba(251, 146, 60, 0.1);
+  --icv-border-color: #443328;
+  --icv-border-highlight: #5f4533;
+  --icv-text-primary: #f3e9e2;
+  --icv-text-secondary: #ddccc0;
+  --icv-text-muted: #a28d7d;
+  --icv-purple-gradient: linear-gradient(135deg, #9a3412 0%, #7c2d12 100%);
+  --icv-purple-hover: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+  --icv-accent-green: #34d399;
+  --icv-accent-blue: #60a5fa;
+  --icv-accent-red: #f87171;
+  --icv-accent-yellow: #fb923c;
+  --icv-accent-purple: #c084fc;
+}
+
+.icv-app.icv-theme-void {
+  --icv-bg-primary: #0a0a14;
+  --icv-bg-secondary: #050509;
+  --icv-bg-card: #11111f;
+  --icv-bg-hover: rgba(217, 70, 239, 0.1);
+  --icv-border-color: #26263d;
+  --icv-border-highlight: #3c3c5c;
+  --icv-text-primary: #e9e9f5;
+  --icv-text-secondary: #c8c8dd;
+  --icv-text-muted: #8585a3;
+  --icv-purple-gradient: linear-gradient(135deg, #4c1d95 0%, #2e1065 100%);
+  --icv-purple-hover: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+  --icv-accent-green: #34d399;
+  --icv-accent-blue: #22d3ee;
+  --icv-accent-red: #fb7185;
+  --icv-accent-yellow: #fde047;
+  --icv-accent-purple: #d946ef;
+}
+
+/* Thin scrollbars, as in Lorebook */
+
+.icv-app * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--icv-border-highlight) var(--icv-bg-secondary);
+}
+.icv-app *::-webkit-scrollbar { width: 10px; height: 10px; }
+.icv-app *::-webkit-scrollbar-track { background: var(--icv-bg-secondary); }
+.icv-app *::-webkit-scrollbar-thumb {
+  background: var(--icv-border-highlight);
+  border-radius: 999px;
+  border: 2px solid var(--icv-bg-secondary);
+}
+.icv-app *::-webkit-scrollbar-thumb:hover { background: var(--icv-accent-blue); }
+
+/* Shared form controls */
+
+.icv-app input[type="text"],
+.icv-app input[type="number"],
+.icv-app textarea,
+.icv-app select {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: var(--icv-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.icv-app input:focus,
+.icv-app textarea:focus,
+.icv-app select:focus {
+  border-color: var(--icv-accent-blue);
+  box-shadow: 0 0 0 2px var(--icv-bg-hover);
+}
+.icv-app input::placeholder,
+.icv-app textarea::placeholder {
+  color: var(--icv-text-muted);
+}
+
+/* ------------------------------------------------------------ */
+/* 1. Conversation strip                                          */
+/* ------------------------------------------------------------ */
+
+.icv-strip {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.85);
-  border-radius: 15px;
-  padding: 35px 20px 20px 20px;
+  background: var(--icv-bg-primary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 12px;
+  padding: 20px 16px 14px;
   z-index: 1000;
-  color: white;
-  font-family: 'Signika', 'Arial', sans-serif;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  min-width: 200px;
-  animation: fadeIn 0.3s ease-in;
+  min-width: 140px;
+  animation: icvFadeUp 0.3s ease-out;
 }
 
-/* Close button for conversation display */
-#conversation-close-btn {
-position: absolute;
-top: 8px;
-right: 8px;
-background: linear-gradient(45deg, #e24a4a, #bd3535);
-border: none;
-border-radius: 50%;
-width: 28px;
-height: 28px;
-color: white;
-cursor: pointer;
-font-size: 14px;
-font-weight: bold;
-transition: all 0.2s ease;
-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-display: flex;
-align-items: center;
-justify-content: center;
-z-index: 10;
+@keyframes icvFadeUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-#conversation-close-btn:hover {
-transform: scale(1.15) rotate(90deg);
-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-}
-
-#conversation-close-btn:active {
-transform: scale(1.05) rotate(90deg);
-}
-
-/* Fade in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* Character container */
-.conversation-characters {
+.icv-strip-row {
   display: flex;
-  gap: 20px;
-  align-items: center;
+  gap: 18px;
+  align-items: flex-start;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-/* Individual character */
-.conversation-character {
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  position: relative;
-}
-
-.conversation-character:hover {
-  transform: translateY(-5px) scale(1.05);
-  background: rgba(135, 206, 235, 0.2);
-}
-
-/* Character portrait */
-.character-portrait {
-  width: 90px;
-  height: 90px;
+.icv-strip-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
   border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 10px;
-  border: 3px solid rgba(255, 255, 255, 0.6);
-  position: relative;
-  transition: all 0.3s ease;
+  background: transparent;
+  color: var(--icv-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.2s ease;
+  z-index: 2;
+}
+.icv-strip-close:hover {
+  color: var(--icv-accent-red);
+  border-color: var(--icv-accent-red);
+  transform: rotate(90deg);
 }
 
-.character-portrait img {
+.icv-strip-char {
+  text-align: center;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--icv-bg-card);
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+.icv-strip-char.gm { cursor: pointer; }
+.icv-strip-char.gm:hover {
+  transform: translateY(-4px) scale(1.04);
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+}
+
+.icv-strip-portrait {
+  position: relative;
+  width: clamp(60px, 6vw, 96px);
+  height: clamp(60px, 6vw, 96px);
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  border: 3px solid var(--icv-border-highlight);
+  overflow: visible;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.icv-strip-portrait img {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
-  object-position: center;
+  display: block;
+  border: none;
 }
 
-/* Character name */
-.character-name {
-  font-size: 13px;
+.icv-strip-name {
+  font-size: clamp(11px, 1vw, 14px);
   font-weight: 600;
-  max-width: 90px;
+  max-width: clamp(70px, 7vw, 110px);
+  margin: 0 auto;
   word-wrap: break-word;
   line-height: 1.2;
-  color: #fff;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  color: var(--icv-text-secondary);
 }
 
-/* Speaking character styles */
-.conversation-character.speaking .character-portrait {
-  border-color: #ffd700;
-  box-shadow: 0 0 25px #ffd700, 0 0 40px rgba(255, 215, 0, 0.4);
-  animation: pulse 2s infinite;
+.icv-strip-char.speaking .icv-strip-portrait {
+  border-color: var(--icv-accent-yellow);
+  animation: icvPulse 2s infinite;
+}
+.icv-strip-char.speaking .icv-strip-name {
+  color: var(--icv-accent-yellow);
 }
 
-.conversation-character.speaking .character-name {
-  color: #ffd700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-}
-
-/* Speaking indicator badge */
-.speaking-indicator {
+.icv-strip-bubble {
   position: absolute;
   top: -8px;
   right: -8px;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(45deg, #ffd700, #ffed4a);
+  width: 22px;
+  height: 22px;
+  background: var(--icv-accent-yellow);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  animation: bounce 1s infinite;
+  animation: icvBounce 1s infinite;
+}
+.icv-strip-bubble i { font-size: 10px; color: var(--icv-bg-secondary); }
+
+@keyframes icvPulse {
+  0%, 100% { box-shadow: 0 0 18px var(--icv-accent-yellow); }
+  50%      { box-shadow: 0 0 32px var(--icv-accent-yellow); }
+}
+@keyframes icvBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
 }
 
-.speaking-indicator i {
-  font-size: 12px;
-  color: #000;
-}
-
-/* Pulse animation for speaking character */
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 25px #ffd700, 0 0 40px rgba(255, 215, 0, 0.4);
-    border-color: #ffd700;
-  }
-  50% {
-    box-shadow: 0 0 35px #ffd700, 0 0 60px rgba(255, 215, 0, 0.8);
-    border-color: #ffed4a;
-  }
-}
-
-/* Bounce animation for speaking indicator */
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-/* Empty conversation state */
-.conversation-empty {
-  padding: 20px;
+.icv-strip-hint {
   text-align: center;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Player mode indicator */
-.player-mode-indicator {
-  text-align: center;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--icv-border-color);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--icv-text-muted);
   font-style: italic;
 }
 
-/* Token HUD Buttons Container */
-.intrinsics-conversation-buttons {
+/* ------------------------------------------------------------ */
+/* 2. Token HUD buttons                                           */
+/* ------------------------------------------------------------ */
+
+.icv-hud {
   position: absolute;
   display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.95);
-  border-radius: 12px;
-  padding: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 99999;
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+  gap: 6px;
+  background: var(--icv-bg-primary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 99;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
   pointer-events: auto;
   white-space: nowrap;
-  animation: slideIn 0.2s ease-out;
 }
 
-/* Slide in animation for HUD buttons */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
-}
+.icv-hud.position-bottom     { bottom: -70px;  left: 50%; transform: translateX(-50%); }
+.icv-hud.position-bottom-far { bottom: -105px; left: 50%; transform: translateX(-50%); }
+.icv-hud.position-top        { top: -62px;     left: 50%; transform: translateX(-50%); }
+.icv-hud.position-left       { top: 50%; right: calc(100% + 15px); transform: translateY(-50%); }
+.icv-hud.position-right      { top: 50%; left: calc(100% + 15px);  transform: translateY(-50%); }
 
-/* Individual HUD buttons */
-.intrinsics-conversation-buttons button {
-  background: linear-gradient(45deg, #4a90e2, #357abd);
-  border: none;
+.icv-hud-btn {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
   border-radius: 8px;
-  padding: 10px 12px;
-  color: white;
+  padding: 9px 11px;
+  min-width: 38px;
+  color: var(--icv-text-secondary);
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.2s ease;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-  min-width: 40px;
-  position: relative;
-  z-index: 100000;
-  pointer-events: auto;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.icv-hud-btn:hover {
+  transform: scale(1.1);
+  background: var(--icv-purple-gradient);
+  border-color: var(--icv-border-highlight);
+}
+.icv-hud-btn.add i            { color: var(--icv-accent-blue); }
+.icv-hud-btn.remove i         { color: var(--icv-accent-red); }
+.icv-hud-btn.speaker i        { color: var(--icv-accent-yellow); }
+.icv-hud-btn.speaker.active i { color: var(--icv-text-muted); }
+.icv-hud-btn.dialogue i       { color: var(--icv-accent-purple); }
+.icv-hud-btn:hover i          { color: #fff; }
+
+/* ------------------------------------------------------------ */
+/* 3. Player dialogue modal (CRPG-style right-click chat)         */
+/* ------------------------------------------------------------ */
+
+#intrinsics-dialogue-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  animation: idmFadeIn 0.2s ease-out;
 }
 
-/* Button hover effects */
-.intrinsics-conversation-buttons button:hover {
-  transform: scale(1.15);
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6);
+#intrinsics-dialogue-modal .idm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
-/* Button active state */
-.intrinsics-conversation-buttons button:active {
-  transform: scale(1.05);
-}
-
-/* Remove button style */
-.intrinsics-conversation-buttons button.remove {
-  background: linear-gradient(45deg, #e24a4a, #bd3535);
-}
-
-/* Speaker button styles */
-.intrinsics-conversation-buttons button.speaker {
-  background: linear-gradient(45deg, #ffd700, #ffb347);
-}
-
-.intrinsics-conversation-buttons button.speaker.active {
-  background: linear-gradient(45deg, #666, #444);
-}
-
-/* Specific positioning classes for different modes */
-.intrinsics-conversation-buttons.position-bottom {
-  bottom: -75px;
+#intrinsics-dialogue-modal .idm-panel {
+  position: absolute;
   left: 50%;
+  bottom: 40px;
   transform: translateX(-50%);
+  width: min(720px, calc(100vw - 60px));
+  background: var(--icv-bg-primary);
+  border: 1px solid var(--icv-border-highlight);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  padding: 22px 26px 14px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.intrinsics-conversation-buttons.position-bottom-far {
-  bottom: -100px;
-  left: 50%;
-  transform: translateX(-50%);
+#intrinsics-dialogue-modal .idm-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--icv-text-muted);
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+#intrinsics-dialogue-modal .idm-close:hover {
+  color: var(--icv-accent-red);
+  border-color: var(--icv-accent-red);
+  transform: rotate(90deg);
 }
 
-.intrinsics-conversation-buttons.position-top {
-  top: -55px;
-  left: 50%;
-  transform: translateX(-50%);
+#intrinsics-dialogue-modal .idm-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.intrinsics-conversation-buttons.position-left {
-  top: 50%;
-  right: calc(100% + 15px);
-  transform: translateY(-50%);
+#intrinsics-dialogue-modal .idm-portrait-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--icv-accent-yellow);
+  flex-shrink: 0;
+}
+#intrinsics-dialogue-modal .idm-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border: none;
 }
 
-.intrinsics-conversation-buttons.position-right {
-  top: 50%;
-  left: calc(100% + 15px);
-  transform: translateY(-50%);
+#intrinsics-dialogue-modal .idm-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--icv-accent-yellow);
 }
 
-/* Compatibility styles for Pathfinder 2E system */
-.pf2e .intrinsics-conversation-buttons {
-  /* Extra spacing for PF2e's additional HUD elements */
-  margin-top: 10px;
+#intrinsics-dialogue-modal .idm-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--icv-text-primary);
+  background: var(--icv-bg-secondary);
+  border-left: 3px solid var(--icv-accent-yellow);
+  padding: 12px 14px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
-/* Compatibility with Token Action HUD */
-#token-action-hud ~ .intrinsics-conversation-buttons,
-.tah-container ~ .intrinsics-conversation-buttons {
-  /* Adjust position when Token Action HUD is present */
-  z-index: 100001;
+#intrinsics-dialogue-modal .idm-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* High contrast mode for accessibility */
+#intrinsics-dialogue-modal .idm-choice {
+  text-align: left;
+  background: var(--icv-bg-card);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--icv-text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+#intrinsics-dialogue-modal .idm-choice:hover {
+  background: var(--icv-purple-gradient);
+  border-color: var(--icv-border-highlight);
+  transform: translateX(4px);
+}
+#intrinsics-dialogue-modal .idm-choice-num {
+  color: var(--icv-accent-yellow);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+#intrinsics-dialogue-modal .idm-choice-end {
+  font-style: italic;
+  opacity: 0.85;
+  justify-content: center;
+}
+
+#intrinsics-dialogue-modal .idm-choice-check {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--icv-accent-yellow);
+  color: var(--icv-accent-yellow);
+  background: transparent;
+  font-weight: 600;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+#intrinsics-dialogue-modal .idm-choice.idm-choice-attempted {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--icv-bg-secondary);
+}
+#intrinsics-dialogue-modal .idm-choice.idm-choice-attempted:hover {
+  background: var(--icv-bg-secondary);
+  border-color: var(--icv-border-color);
+  transform: none;
+}
+#intrinsics-dialogue-modal .idm-choice-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--icv-text-muted);
+}
+#intrinsics-dialogue-modal .idm-choice.idm-choice-rolling {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+#intrinsics-dialogue-modal .idm-hint {
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--icv-text-muted);
+  opacity: 0.7;
+  user-select: none;
+}
+
+@keyframes idmFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ------------------------------------------------------------ */
+/* 4. Dialogue tree editor + shared ApplicationV2 window theming  */
+/* ------------------------------------------------------------ */
+
+/* The editor and hub are real Foundry windows (ApplicationV2). The id stays
+   on the window root, so all idh-/ide- selectors below keep working; these
+   rules retheme the core window chrome to match the module palette. */
+#intrinsics-dialogue-editor.application,
+#intrinsics-dialogue-hub.application {
+  background: var(--icv-bg-primary);
+  border: 1px solid var(--icv-border-highlight);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75);
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-editor .window-header,
+#intrinsics-dialogue-hub .window-header {
+  border-bottom: 1px solid var(--icv-border-color);
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-editor .window-header .window-title,
+#intrinsics-dialogue-hub .window-header .window-title {
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-editor .window-content,
+#intrinsics-dialogue-hub .window-content {
+  padding: 12px 16px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#intrinsics-dialogue-editor { min-width: 720px; min-height: 480px; }
+#intrinsics-dialogue-hub    { min-width: 520px; min-height: 420px; }
+
+#intrinsics-dialogue-editor .ide-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#intrinsics-dialogue-editor .ide-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--icv-border-color);
+}
+#intrinsics-dialogue-editor .ide-toolbar button {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-toolbar button:hover {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+  color: var(--icv-text-primary);
+}
+
+/* Second toolbar row: import/export/copy + player-state reset */
+#intrinsics-dialogue-editor .ide-toolbar-io { padding-top: 0; }
+#intrinsics-dialogue-editor .ide-toolbar-io button i { margin-right: 4px; }
+#intrinsics-dialogue-editor .ide-copy-from {
+  max-width: 220px;
+  font-size: 12px;
+}
+#intrinsics-dialogue-editor .ide-reset-state {
+  border-color: var(--icv-accent-red) !important;
+  color: var(--icv-accent-red) !important;
+}
+#intrinsics-dialogue-editor .ide-reset-state:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+#intrinsics-dialogue-editor .ide-enable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+#intrinsics-dialogue-editor .ide-enable input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+#intrinsics-dialogue-editor .ide-rumour-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--icv-border-color);
+}
+#intrinsics-dialogue-editor .ide-rumour-enable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--icv-text-secondary);
+}
+#intrinsics-dialogue-editor .ide-rumour-enable input { cursor: pointer; }
+#intrinsics-dialogue-editor .ide-rumour-enable i { color: var(--icv-accent-purple); }
+#intrinsics-dialogue-editor .ide-rumour-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 24px;
+}
+#intrinsics-dialogue-editor .ide-rumour-fields input,
+#intrinsics-dialogue-editor .ide-rumour-fields textarea {
+  font-size: 12px;
+  resize: vertical;
+}
+
+#intrinsics-dialogue-editor .ide-body-visual {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+#intrinsics-dialogue-editor .ide-nodes-pane,
+#intrinsics-dialogue-editor .ide-form-pane {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#intrinsics-dialogue-editor .ide-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--icv-border-color);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--icv-text-secondary);
+}
+#intrinsics-dialogue-editor .ide-add-node {
+  background: var(--icv-purple-gradient);
+  border: 1px solid var(--icv-border-highlight);
+  border-radius: 5px;
+  padding: 3px 10px;
+  color: var(--icv-text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+#intrinsics-dialogue-editor .ide-add-node:hover { background: var(--icv-purple-hover); }
+
+#intrinsics-dialogue-editor .ide-node-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+#intrinsics-dialogue-editor .ide-node-item {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--icv-border-color);
+  background: var(--icv-bg-card);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-node-item:hover {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+}
+#intrinsics-dialogue-editor .ide-node-item.selected {
+  background: var(--icv-purple-gradient);
+  border-color: var(--icv-border-highlight);
+}
+#intrinsics-dialogue-editor .ide-node-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+#intrinsics-dialogue-editor .ide-node-item-id {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--icv-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#intrinsics-dialogue-editor .ide-node-item-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--icv-accent-green);
+  color: var(--icv-accent-green);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+#intrinsics-dialogue-editor .ide-node-item-badge.cond {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--icv-accent-purple);
+  color: var(--icv-accent-purple);
+}
+#intrinsics-dialogue-editor .ide-node-item-play {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  color: var(--icv-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-node-item-play:hover {
+  color: var(--icv-accent-yellow);
+  border-color: var(--icv-accent-yellow);
+}
+#intrinsics-dialogue-editor .ide-node-item-preview {
+  font-size: 11.5px;
+  color: var(--icv-text-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+#intrinsics-dialogue-editor .ide-form-pane {
+  overflow-y: auto;
+  min-height: 0;
+}
+#intrinsics-dialogue-editor .ide-form {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#intrinsics-dialogue-editor .ide-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#intrinsics-dialogue-editor .ide-field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--icv-text-muted);
+}
+#intrinsics-dialogue-editor .ide-field label i { color: var(--icv-accent-purple); }
+#intrinsics-dialogue-editor .ide-field-hint {
+  font-size: 11px;
+  color: var(--icv-text-muted);
+  font-style: italic;
+}
+#intrinsics-dialogue-editor .ide-field-text,
+#intrinsics-dialogue-editor .ide-field-rumours {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+#intrinsics-dialogue-editor .ide-field-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#intrinsics-dialogue-editor .ide-add-choice {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 5px;
+  padding: 4px 10px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+#intrinsics-dialogue-editor .ide-add-choice:hover {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+}
+
+#intrinsics-dialogue-editor .ide-choices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#intrinsics-dialogue-editor .ide-choice-row {
+  border: 1px solid var(--icv-border-color);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--icv-bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#intrinsics-dialogue-editor .ide-choice-row.has-check {
+  border-color: var(--icv-accent-yellow);
+}
+#intrinsics-dialogue-editor .ide-choice-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#intrinsics-dialogue-editor .ide-choice-num {
+  font-weight: 700;
+  color: var(--icv-accent-yellow);
+  font-size: 13px;
+  min-width: 22px;
+}
+#intrinsics-dialogue-editor .ide-choice-text { flex: 1; }
+#intrinsics-dialogue-editor .ide-choice-up,
+#intrinsics-dialogue-editor .ide-choice-down,
+#intrinsics-dialogue-editor .ide-choice-delete {
+  background: transparent;
+  border: 1px solid var(--icv-border-color);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  color: var(--icv-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-choice-up:hover,
+#intrinsics-dialogue-editor .ide-choice-down:hover {
+  background: var(--icv-bg-hover);
+  color: var(--icv-text-primary);
+  border-color: var(--icv-border-highlight);
+}
+#intrinsics-dialogue-editor .ide-choice-delete:hover {
+  color: var(--icv-accent-red);
+  border-color: var(--icv-accent-red);
+}
+
+#intrinsics-dialogue-editor .ide-target-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+#intrinsics-dialogue-editor .ide-target-row label {
+  margin: 0;
+  font-size: 11px;
+}
+
+#intrinsics-dialogue-editor .ide-choice-check {
+  border-top: 1px dashed var(--icv-border-color);
+  padding-top: 8px;
+}
+#intrinsics-dialogue-editor .ide-check-add {
+  background: transparent;
+  border: 1px dashed var(--icv-accent-yellow);
+  border-radius: 5px;
+  padding: 6px 12px;
+  color: var(--icv-accent-yellow);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-check-add:hover {
+  background: var(--icv-bg-hover);
+  border-style: solid;
+}
+#intrinsics-dialogue-editor .ide-check-add i { margin-right: 6px; }
+
+#intrinsics-dialogue-editor .ide-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+#intrinsics-dialogue-editor .ide-check-label {
+  color: var(--icv-accent-yellow);
+  font-size: 12px;
+  font-weight: 600;
+}
+#intrinsics-dialogue-editor .ide-check-label i { margin-right: 5px; }
+#intrinsics-dialogue-editor .ide-check-remove {
+  background: transparent;
+  border: 1px solid var(--icv-accent-red);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--icv-accent-red);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  transition: background 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-check-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+#intrinsics-dialogue-editor .ide-check-fields {
+  display: grid;
+  grid-template-columns: 60px 1fr 40px 90px;
+  gap: 6px;
+  align-items: center;
+}
+#intrinsics-dialogue-editor .ide-check-fields label {
+  margin: 0;
+  text-align: right;
+  font-size: 11px;
+}
+#intrinsics-dialogue-editor .ide-check-dc {
+  width: 100%;
+  text-align: center;
+}
+
+/* Degrees-of-success toggle + secret-roll checkbox inside the check section */
+#intrinsics-dialogue-editor .ide-degrees-toggle,
+#intrinsics-dialogue-editor .ide-check-secret,
+#intrinsics-dialogue-editor .ide-cfx-once {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+#intrinsics-dialogue-editor .ide-degrees-toggle input,
+#intrinsics-dialogue-editor .ide-check-secret input,
+#intrinsics-dialogue-editor .ide-cfx-once input {
+  cursor: pointer;
+}
+
+/* Per-choice conditions / effects section (purple twin of the check section) */
+#intrinsics-dialogue-editor .ide-choice-cfx {
+  border-top: 1px dashed var(--icv-border-color);
+  padding-top: 8px;
+}
+#intrinsics-dialogue-editor .ide-cfx-add {
+  background: transparent;
+  border: 1px dashed var(--icv-accent-purple);
+  border-radius: 5px;
+  padding: 6px 12px;
+  color: var(--icv-accent-purple);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-cfx-add:hover {
+  background: var(--icv-bg-hover);
+  border-style: solid;
+}
+#intrinsics-dialogue-editor .ide-cfx-add i { margin-right: 6px; }
+#intrinsics-dialogue-editor .ide-cfx-label {
+  color: var(--icv-accent-purple);
+  font-size: 12px;
+  font-weight: 600;
+}
+#intrinsics-dialogue-editor .ide-cfx-label i { margin-right: 5px; }
+#intrinsics-dialogue-editor .ide-cfx-remove {
+  background: transparent;
+  border: 1px solid var(--icv-accent-red);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--icv-accent-red);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  transition: background 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-cfx-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+#intrinsics-dialogue-editor .ide-cfx-fields {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+#intrinsics-dialogue-editor .ide-cfx-fields label {
+  margin: 0;
+  text-align: right;
+  font-size: 11px;
+}
+
+#intrinsics-dialogue-editor .ide-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--icv-border-color);
+}
+#intrinsics-dialogue-editor .ide-set-start,
+#intrinsics-dialogue-editor .ide-delete-node {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 5px;
+  padding: 6px 12px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+#intrinsics-dialogue-editor .ide-set-start:hover:not(:disabled) {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+}
+#intrinsics-dialogue-editor .ide-set-start:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+#intrinsics-dialogue-editor .ide-delete-node {
+  border-color: var(--icv-accent-red);
+  color: var(--icv-accent-red);
+}
+#intrinsics-dialogue-editor .ide-delete-node:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+#intrinsics-dialogue-editor .ide-body-json {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+#intrinsics-dialogue-editor .ide-json {
+  width: 100%;
+  flex: 1;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: none;
+}
+
+#intrinsics-dialogue-editor .ide-status {
+  min-height: 18px;
+  font-size: 12.5px;
+  padding: 2px 0;
+}
+#intrinsics-dialogue-editor .ide-status.error { color: var(--icv-accent-red); }
+#intrinsics-dialogue-editor .ide-status.ok    { color: var(--icv-accent-green); }
+#intrinsics-dialogue-editor .ide-status.info  { color: var(--icv-accent-blue); }
+
+#intrinsics-dialogue-editor .ide-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#intrinsics-dialogue-editor .ide-spacer { flex: 1; }
+#intrinsics-dialogue-editor .ide-buttons button {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-editor .ide-buttons button:hover {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-editor .ide-save {
+  background: var(--icv-purple-gradient) !important;
+  border-color: var(--icv-border-highlight) !important;
+  color: var(--icv-text-primary) !important;
+  font-weight: 600;
+}
+#intrinsics-dialogue-editor .ide-save:hover {
+  background: var(--icv-purple-hover) !important;
+}
+
+#intrinsics-dialogue-editor .ide-empty {
+  padding: 20px;
+  text-align: center;
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--icv-text-muted);
+}
+#intrinsics-dialogue-editor .ide-empty-thin { padding: 8px; }
+
+/* ------------------------------------------------------------ */
+/* 5. GM dialogue hub                                             */
+/* ------------------------------------------------------------ */
+
+#intrinsics-dialogue-hub .idh-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#intrinsics-dialogue-hub .idh-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#intrinsics-dialogue-hub .idh-spacer { flex: 1; }
+#intrinsics-dialogue-hub .idh-portrait {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--icv-border-highlight);
+}
+#intrinsics-dialogue-hub .idh-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-hub .idh-subtitle {
+  font-size: 13px;
+  color: var(--icv-text-muted);
+}
+
+/* Lorebook-style tab bar */
+#intrinsics-dialogue-hub .idh-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px 8px 0;
+  background: var(--icv-bg-secondary);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--icv-border-color);
+}
+#intrinsics-dialogue-hub .idh-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: var(--icv-text-muted);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+#intrinsics-dialogue-hub .idh-tab:hover {
+  color: var(--icv-text-primary);
+  background: var(--icv-bg-hover);
+}
+#intrinsics-dialogue-hub .idh-tab.active {
+  background: var(--icv-purple-gradient);
+  border-color: var(--icv-border-highlight);
+  color: var(--icv-text-primary);
+  font-weight: 600;
+}
+
+#intrinsics-dialogue-hub .idh-body {
+  flex: 1;
+  min-height: 220px;
+  overflow-y: auto;
+}
+
+#intrinsics-dialogue-hub .idh-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+#intrinsics-dialogue-hub .idh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+#intrinsics-dialogue-hub .idh-toggle input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+#intrinsics-dialogue-hub .idh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#intrinsics-dialogue-hub .idh-field > label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--icv-text-muted);
+}
+#intrinsics-dialogue-hub .idh-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#intrinsics-dialogue-hub .idh-info {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--icv-text-muted);
+  background: var(--icv-bg-secondary);
+  border-left: 3px solid var(--icv-accent-blue);
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+
+#intrinsics-dialogue-hub .idh-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#intrinsics-dialogue-hub .idh-btn {
+  background: var(--icv-bg-secondary);
+  border: 1px solid var(--icv-border-color);
+  border-radius: 6px;
+  padding: 7px 14px;
+  color: var(--icv-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+#intrinsics-dialogue-hub .idh-btn:hover {
+  background: var(--icv-bg-hover);
+  border-color: var(--icv-border-highlight);
+  color: var(--icv-text-primary);
+}
+#intrinsics-dialogue-hub .idh-btn.primary {
+  background: var(--icv-purple-gradient);
+  border-color: var(--icv-border-highlight);
+  color: var(--icv-text-primary);
+  font-weight: 600;
+}
+#intrinsics-dialogue-hub .idh-btn.primary:hover { background: var(--icv-purple-hover); }
+#intrinsics-dialogue-hub .idh-btn.danger {
+  border-color: var(--icv-accent-red);
+  color: var(--icv-accent-red);
+  background: transparent;
+}
+#intrinsics-dialogue-hub .idh-btn.danger:hover { background: rgba(239, 68, 68, 0.15); }
+#intrinsics-dialogue-hub .idh-btn.ok {
+  border-color: var(--icv-accent-green);
+  color: var(--icv-accent-green);
+}
+#intrinsics-dialogue-hub .idh-btn.icon {
+  padding: 7px 10px;
+  min-width: 32px;
+}
+
+/* Combat tab: one table select (+ test button) per trigger */
+#intrinsics-dialogue-hub .idh-combat-triggers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#intrinsics-dialogue-hub .idh-combat-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+#intrinsics-dialogue-hub .idh-combat-row > label {
+  font-size: 12px;
+  color: var(--icv-text-secondary);
+  text-align: right;
+}
+
+#intrinsics-dialogue-hub .idh-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--icv-text-secondary);
+}
+
+#intrinsics-dialogue-hub .idh-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#intrinsics-dialogue-hub .idh-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--icv-border-color);
+  border-radius: 7px;
+  background: var(--icv-bg-card);
+}
+#intrinsics-dialogue-hub .idh-group-item.highlight {
+  border-color: var(--icv-accent-yellow);
+}
+#intrinsics-dialogue-hub .idh-group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#intrinsics-dialogue-hub .idh-group-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--icv-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#intrinsics-dialogue-hub .idh-group-meta {
+  font-size: 11px;
+  color: var(--icv-text-muted);
+}
+#intrinsics-dialogue-hub .idh-group-controls {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+#intrinsics-dialogue-hub .idh-g-npc-row,
+#intrinsics-dialogue-hub .idh-g-line-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+}
+#intrinsics-dialogue-hub .idh-g-npc-num {
+  font-weight: 700;
+  color: var(--icv-accent-yellow);
+  font-size: 12.5px;
+  min-width: 20px;
+}
+#intrinsics-dialogue-hub .idh-g-npc-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--icv-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#intrinsics-dialogue-hub .idh-g-npc-table { flex: 1.4; }
+#intrinsics-dialogue-hub .idh-g-line-speaker { width: 150px; flex-shrink: 0; }
+#intrinsics-dialogue-hub .idh-g-line-text { flex: 1; }
+#intrinsics-dialogue-hub .idh-g-npc-up,
+#intrinsics-dialogue-hub .idh-g-npc-down,
+#intrinsics-dialogue-hub .idh-g-npc-del {
+  background: transparent;
+  border: 1px solid var(--icv-border-color);
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  color: var(--icv-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+#intrinsics-dialogue-hub .idh-g-npc-up:hover,
+#intrinsics-dialogue-hub .idh-g-npc-down:hover {
+  background: var(--icv-bg-hover);
+  color: var(--icv-text-primary);
+  border-color: var(--icv-border-highlight);
+}
+#intrinsics-dialogue-hub .idh-g-npc-del:hover {
+  color: var(--icv-accent-red);
+  border-color: var(--icv-accent-red);
+}
+
+#intrinsics-dialogue-hub .idh-empty {
+  padding: 14px;
+  text-align: center;
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--icv-text-muted);
+}
+
+#intrinsics-dialogue-hub .idh-status {
+  min-height: 18px;
+  font-size: 12.5px;
+}
+#intrinsics-dialogue-hub .idh-status.error { color: var(--icv-accent-red); }
+#intrinsics-dialogue-hub .idh-status.ok    { color: var(--icv-accent-green); }
+#intrinsics-dialogue-hub .idh-status.info  { color: var(--icv-accent-blue); }
+
+/* ------------------------------------------------------------ */
+/* 6. Accessibility                                               */
+/* ------------------------------------------------------------ */
+
+/* GM dialogue echo (whispered chat summaries of player choices) */
+.icv-gm-echo {
+  font-size: 12.5px;
+  font-style: italic;
+}
+
 @media (prefers-contrast: high) {
-  .intrinsics-conversation-buttons {
-    border: 3px solid #fff;
+  .icv-hud,
+  .icv-strip,
+  #intrinsics-dialogue-modal .idm-panel,
+  #intrinsics-dialogue-editor.application,
+  #intrinsics-dialogue-hub.application {
+    border-width: 3px;
   }
-
-  .conversation-character.speaking .character-portrait {
-    border-width: 4px;
-  }
+  .icv-strip-char.speaking .icv-strip-portrait { border-width: 4px; }
 }
 
-/* Reduced motion mode */
 @media (prefers-reduced-motion: reduce) {
-  .intrinsics-conversation-display,
-  .intrinsics-conversation-buttons,
-  .conversation-character,
-  .intrinsics-conversation-buttons button {
+  .icv-strip,
+  .icv-hud,
+  .icv-strip-char,
+  .icv-strip-bubble,
+  .icv-hud-btn,
+  #intrinsics-dialogue-modal,
+  #intrinsics-dialogue-hub {
     animation: none;
     transition: none;
   }

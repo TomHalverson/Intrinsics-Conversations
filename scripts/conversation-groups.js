@@ -1,636 +1,312 @@
-console.log("LOADING: Conversation Groups system starting");
+import { MODULE_ID } from './constants.js';
+import { isTokenInRange, getActivePlayerTokens } from './utils.js';
+import { ambientDialogue } from './ambient-dialogue.js';
 
-const MODULE_ID = 'intrinsics-conversations';
+export const GROUP_MODES = {
+    'random': 'Random — a random NPC rolls on their own table',
+    'turn-taking': 'Turn-taking — NPCs take turns rolling on a shared table',
+    'scripted': 'Scripted (table) — NPCs alternate through a shared table in order',
+    'scripted-custom': 'Scripted (custom) — pre-written lines with chosen speakers'
+};
 
 /**
- * Conversation Groups System
- * Manages multi-NPC conversations that trigger when players come nearby
+ * Multi-NPC ambient conversations. Groups are stored in a hidden world setting
+ * and progressed by the GM client (driven from the ambient monitoring loop).
  */
 class ConversationGroupsSystem {
-    constructor(dialogueAuraSystem) {
-        this.dialogueAuraSystem = dialogueAuraSystem;
-        this.conversationGroups = new Map(); // Map of groupId -> conversation config
-        this.activeConversations = new Map(); // Map of groupId -> active conversation state
-        this.conversationHistory = new Map(); // Track which line we're on for scripted conversations
+    constructor() {
+        this.conversationGroups = new Map(); // groupId -> config
+        this.activeConversations = new Map(); // groupId -> { lastTriggered }
+        this.conversationHistory = new Map(); // groupId -> current line / speaker index
     }
 
-    /**
-     * Create a new conversation group
-     */
-    async createConversationGroup(groupConfig) {
-        const groupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    registerSettings() {
+        game.settings.register(MODULE_ID, 'conversationGroups', {
+            scope: 'world', config: false, type: String, default: '[]'
+        });
+    }
 
-        // Validate config
-        if (!groupConfig.name) {
-            ui.notifications.error("Conversation group must have a name");
-            return false;
+    validateConfig(config) {
+        if (!config.name?.trim()) return 'Conversation group must have a name';
+        if (!config.npcs || config.npcs.length < 1) return 'Conversation group must have at least 1 NPC';
+        if (!Object.keys(GROUP_MODES).includes(config.mode)) return 'Invalid conversation mode';
+        if ((config.mode === 'scripted' || config.mode === 'turn-taking') && !config.sharedTableId) {
+            return 'This mode needs a shared dialogue table';
         }
-
-        if (!groupConfig.npcs || groupConfig.npcs.length < 1) {
-            ui.notifications.error("Conversation group must have at least 1 NPC");
-            return false;
+        if (config.mode === 'scripted-custom' && !(config.dialogue?.length > 0)) {
+            return 'Scripted conversation must have at least one line';
         }
-
-        if (!groupConfig.mode || !['scripted', 'scripted-custom', 'random', 'turn-taking'].includes(groupConfig.mode)) {
-            ui.notifications.error("Mode must be 'scripted', 'scripted-custom', 'random', or 'turn-taking'");
-            return false;
+        if (config.mode === 'random') {
+            const missing = config.npcs.filter(id => !config.tablesByNPC?.[id]);
+            if (missing.length) return 'Random mode needs a table assigned to every NPC';
         }
+        return null;
+    }
 
-        // For scripted mode (table-based), validate shared table
-        if (groupConfig.mode === 'scripted') {
-            if (!groupConfig.sharedTableId) {
-                ui.notifications.error("Scripted conversation must have a dialogue table");
-                return false;
-            }
-        }
-
-        // For scripted-custom mode, validate dialogue
-        if (groupConfig.mode === 'scripted-custom') {
-            if (!groupConfig.dialogue || groupConfig.dialogue.length === 0) {
-                ui.notifications.error("Scripted conversation must have at least one line");
-                return false;
-            }
-        }
-
-        // For random mode, validate tables
-        if (groupConfig.mode === 'random') {
-            if (!groupConfig.tablesByNPC || Object.keys(groupConfig.tablesByNPC).length < 2) {
-                ui.notifications.error("Random conversation must have tables assigned for all NPCs");
-                return false;
-            }
-        }
-
-        // For turn-taking mode, validate shared table
-        if (groupConfig.mode === 'turn-taking') {
-            if (!groupConfig.sharedTableId) {
-                ui.notifications.error("Turn-taking conversation must have a shared dialogue table");
-                return false;
-            }
-        }
-
-        // Create the conversation group
-        // Note: npcs array order determines speaking sequence for scripted, scripted-custom, and turn-taking modes
-        const conversation = {
-            groupId,
-            name: groupConfig.name,
-            mode: groupConfig.mode,
-            npcs: groupConfig.npcs,  // Array order is preserved and used for NPC speaking order
-            dialogue: groupConfig.dialogue || [],
-            tablesByNPC: groupConfig.tablesByNPC || {},
-            sharedTableId: groupConfig.sharedTableId || null,
-            range: groupConfig.range || 30,
-            delay: groupConfig.delay || game.settings.get(MODULE_ID, 'dialogueAuraRandomInterval'),  // Per-group delay in seconds
-            enabled: true,
-            createdAt: Date.now()
+    /** Build the normalised stored record from a raw config. */
+    #buildRecord(config, existing = null) {
+        return {
+            groupId: existing?.groupId ?? `group-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+            name: config.name.trim(),
+            mode: config.mode,
+            npcs: [...config.npcs], // array order = speaking order
+            dialogue: config.dialogue || [],
+            tablesByNPC: config.tablesByNPC || {},
+            sharedTableId: config.sharedTableId || null,
+            range: config.range || 30,
+            delay: config.delay || game.settings.get(MODULE_ID, 'dialogueAuraRandomInterval'),
+            enabled: existing?.enabled ?? true,
+            createdAt: existing?.createdAt ?? Date.now()
         };
+    }
 
-        this.conversationGroups.set(groupId, conversation);
-
-        // Save to world settings
+    async createConversationGroup(config) {
+        const error = this.validateConfig(config);
+        if (error) {
+            ui.notifications.error(error);
+            return false;
+        }
+        const record = this.#buildRecord(config);
+        this.conversationGroups.set(record.groupId, record);
         await this.saveConversationGroups();
+        return record.groupId;
+    }
 
-        console.log(`CONV: Created conversation group "${conversation.name}" (${groupId})`);
-        ui.notifications.info(`Created conversation: ${conversation.name}`);
-
+    async updateConversationGroup(groupId, config) {
+        const existing = this.conversationGroups.get(groupId);
+        if (!existing) {
+            ui.notifications.error('Conversation group not found');
+            return false;
+        }
+        const error = this.validateConfig(config);
+        if (error) {
+            ui.notifications.error(error);
+            return false;
+        }
+        const record = this.#buildRecord(config, existing);
+        this.conversationGroups.set(groupId, record);
+        this.conversationHistory.delete(groupId); // restart with the new config
+        await this.saveConversationGroups();
         return groupId;
     }
 
-    /**
-     * Delete a conversation group
-     */
     async deleteConversationGroup(groupId) {
-        const conversation = this.conversationGroups.get(groupId);
-        if (!conversation) {
-            ui.notifications.error("Conversation group not found");
-            return false;
-        }
-
-        this.conversationGroups.delete(groupId);
+        if (!this.conversationGroups.delete(groupId)) return false;
         this.activeConversations.delete(groupId);
         this.conversationHistory.delete(groupId);
-
         await this.saveConversationGroups();
-
-        console.log(`CONV: Deleted conversation group "${conversation.name}"`);
-        ui.notifications.info(`Deleted conversation: ${conversation.name}`);
-
         return true;
     }
 
-    /**
-     * Get all conversation groups
-     */
     getConversationGroups() {
         return Array.from(this.conversationGroups.values());
     }
 
-    /**
-     * Get a specific conversation group
-     */
     getConversationGroup(groupId) {
         return this.conversationGroups.get(groupId);
     }
 
-    /**
-     * Check if an NPC is part of any conversation group
-     */
-    getNPCConversations(tokenId) {
-        const conversations = [];
-        for (let [groupId, conv] of this.conversationGroups.entries()) {
-            if (conv.npcs.includes(tokenId)) {
-                conversations.push(conv);
-            }
-        }
-        return conversations;
+    /** All groups containing the given token. */
+    getTokenConversations(tokenId) {
+        return this.getConversationGroups().filter(c => c.npcs.includes(tokenId));
     }
 
-    /**
-     * Reorder NPCs in a conversation group (changes speech order)
-     */
     async reorderNPCs(groupId, npcIds) {
         const conversation = this.conversationGroups.get(groupId);
-        if (!conversation) {
-            ui.notifications.error("Conversation group not found");
-            return false;
-        }
-
-        // Validate that all provided IDs are currently in the conversation
+        if (!conversation) return false;
         if (npcIds.length !== conversation.npcs.length || !npcIds.every(id => conversation.npcs.includes(id))) {
-            ui.notifications.error("Invalid NPC list for reordering");
+            ui.notifications.error('Invalid NPC list for reordering');
             return false;
         }
-
-        // Update the NPC order
         conversation.npcs = [...npcIds];
-
-        // Reset conversation history so it starts from the beginning with new order
         this.conversationHistory.delete(groupId);
-
-        // Save changes
         await this.saveConversationGroups();
-
-        console.log(`CONV: Reordered NPCs in conversation group "${conversation.name}"`);
-        ui.notifications.info(`Updated speech order for: ${conversation.name}`);
-
         return true;
     }
 
-    /**
-     * Toggle a conversation group enabled/disabled
-     */
     async toggleConversation(groupId, enabled) {
         const conversation = this.conversationGroups.get(groupId);
-        if (!conversation) {
-            ui.notifications.error("Conversation group not found");
-            return false;
-        }
-
+        if (!conversation) return false;
         conversation.enabled = enabled;
         await this.saveConversationGroups();
-
-        const status = enabled ? 'enabled' : 'paused';
-        console.log(`CONV: ${status} conversation "${conversation.name}"`);
-        ui.notifications.info(`Conversation "${conversation.name}" ${status}`);
-
         return true;
     }
 
-    /**
-     * Reset a conversation to the beginning
-     */
     async resetConversation(groupId) {
-        const conversation = this.conversationGroups.get(groupId);
-        if (!conversation) {
-            ui.notifications.error("Conversation group not found");
-            return false;
-        }
-
+        if (!this.conversationGroups.has(groupId)) return false;
         this.conversationHistory.delete(groupId);
         this.activeConversations.delete(groupId);
-
-        console.log(`CONV: Reset conversation "${conversation.name}" to beginning`);
-        ui.notifications.info(`Conversation "${conversation.name}" reset to start`);
-
         return true;
     }
 
     /**
-     * Manually trigger a conversation group (bypasses range and cooldown checks)
-     * Plays through the entire conversation from the beginning
+     * Play a whole conversation from the start, line by line with the group's
+     * delay. Bypasses range and cooldown checks.
      */
     async manuallyTriggerConversation(groupId) {
         const conversation = this.conversationGroups.get(groupId);
-        if (!conversation) {
-            ui.notifications.error("Conversation group not found");
-            return false;
-        }
-
+        if (!conversation) return false;
         if (!conversation.enabled) {
-            ui.notifications.warn(`Conversation "${conversation.name}" is paused. Enable it first or it won't progress.`);
+            ui.notifications.warn(`Conversation "${conversation.name}" is paused — enable it first.`);
             return false;
         }
 
-        // Reset conversation to the beginning
         this.conversationHistory.delete(groupId);
         this.activeConversations.delete(groupId);
 
-        console.log(`CONV: Manually playing full conversation "${conversation.name}" from start`);
-        ui.notifications.info(`Playing conversation: ${conversation.name}`);
-
-        // Determine how many lines to play based on mode
         let totalLines = 0;
-
         if (conversation.mode === 'scripted') {
-            const table = game.tables.get(conversation.sharedTableId);
-            if (!table) {
-                ui.notifications.error("Roll table not found");
-                return false;
-            }
-            totalLines = table.results.size;
+            totalLines = game.tables.get(conversation.sharedTableId)?.results.size ?? 0;
         } else if (conversation.mode === 'scripted-custom') {
-            totalLines = conversation.customLines?.length || 0;
-        } else if (conversation.mode === 'turn-taking') {
-            // For turn-taking, play one line per NPC
-            totalLines = conversation.npcs.length;
-        } else if (conversation.mode === 'random') {
-            // For random mode, play one random line per NPC
-            totalLines = conversation.npcs.length;
+            totalLines = conversation.dialogue?.length || 0;
+        } else {
+            totalLines = conversation.npcs.length; // one line per NPC
         }
-
         if (totalLines === 0) {
-            ui.notifications.warn("No lines to play in this conversation");
+            ui.notifications.warn('No lines to play in this conversation');
             return false;
         }
 
-        // Play through all lines with delays
-        const delay = conversation.delay * 1000; // Convert to milliseconds
-
         for (let i = 0; i < totalLines; i++) {
-            // Trigger the next line
-            await this.triggerConversation(groupId, conversation);
-
-            // Wait before next line (but not after the last one)
+            await this.triggerConversation(groupId);
             if (i < totalLines - 1) {
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await new Promise(resolve => setTimeout(resolve, conversation.delay * 1000));
             }
         }
-
-        console.log(`CONV: Finished playing conversation "${conversation.name}"`);
-  
-
         return true;
     }
 
-    /**
-     * Get all conversation groups that a token belongs to
-     */
-    getTokenConversations(tokenId) {
-        const groups = [];
-        for (let [groupId, conversation] of this.conversationGroups) {
-            if (conversation.npcs.includes(tokenId)) {
-                groups.push({
-                    groupId: groupId,
-                    name: conversation.name,
-                    mode: conversation.mode,
-                    enabled: conversation.enabled
-                });
-            }
-        }
-        return groups;
-    }
-
-    /**
-     * Check if any NPC in a group is within range of a player
-     */
-    isConversationInRange(groupId) {
-        const conversation = this.conversationGroups.get(groupId);
-        if (!conversation || !conversation.enabled) return false;
-
-        // Get all active non-GM users
-        const activeNonGMUsers = game.users.filter(u => !u.isGM && u.active);
-
-        if (activeNonGMUsers.length === 0) return false;
-
-        // Get all player tokens owned by currently logged-in (active) non-GM players
-        const playerTokens = [];
-
-        // Iterate through all tokens on the canvas
-        for (const token of canvas.tokens.placeables) {
-            if (!token || !token.actor) continue;
-
-            // Check if any active (logged in) non-GM player owns this token
-            let isPlayerToken = false;
-            for (const user of activeNonGMUsers) {
-                // Check token document ownership
-                const tokenOwnership = token.document.ownership || {};
-                if (tokenOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
-                    isPlayerToken = true;
-                    break;
-                }
-
-                // Check actor ownership as fallback
-                const actor = token.actor;
-                if (actor) {
-                    const actorOwnership = actor.ownership || {};
-                    if (actorOwnership[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) {
-                        isPlayerToken = true;
-                        break;
-                    }
-                }
-            }
-
-            if (isPlayerToken) {
-                playerTokens.push(token);
-            }
-        }
-
-        if (playerTokens.length === 0) return false;
-
-        // Check if any NPC in the group is within range of any player
-        for (let npcId of conversation.npcs) {
+    isConversationInRange(conversation, playerTokens) {
+        for (const npcId of conversation.npcs) {
             const npcToken = canvas.tokens.get(npcId);
             if (!npcToken) continue;
-
-            for (let playerToken of playerTokens) {
-                if (this.dialogueAuraSystem.isTokenInRange(npcToken, playerToken, conversation.range)) {
-                    return true;
-                }
-            }
+            if (playerTokens.some(pt => isTokenInRange(npcToken, pt, conversation.range))) return true;
         }
-
         return false;
     }
 
-    /**
-     * Trigger a conversation group
-     */
+    /** Called from the ambient monitoring loop, GM only. */
+    checkConversations() {
+        if (!game.user.isGM || this.conversationGroups.size === 0) return;
+        const playerTokens = getActivePlayerTokens();
+        if (playerTokens.length === 0) return;
+
+        for (const [groupId, conversation] of this.conversationGroups.entries()) {
+            if (!conversation.enabled) continue;
+            if (!this.isConversationInRange(conversation, playerTokens)) continue;
+
+            const active = this.activeConversations.get(groupId) || { lastTriggered: 0 };
+            const interval = conversation.delay || game.settings.get(MODULE_ID, 'dialogueAuraRandomInterval');
+            if ((Date.now() - active.lastTriggered) / 1000 >= interval) {
+                this.triggerConversation(groupId);
+                active.lastTriggered = Date.now();
+                this.activeConversations.set(groupId, active);
+            }
+        }
+    }
+
     async triggerConversation(groupId) {
         const conversation = this.conversationGroups.get(groupId);
         if (!conversation || !conversation.enabled) return;
-
-        console.log(`CONV: Triggering conversation "${conversation.name}"`);
-
-        if (conversation.mode === 'scripted') {
-            await this.triggerScriptedTableConversation(groupId, conversation);
-        } else if (conversation.mode === 'scripted-custom') {
-            await this.triggerScriptedCustomConversation(groupId, conversation);
-        } else if (conversation.mode === 'random') {
-            await this.triggerRandomConversation(groupId, conversation);
-        } else if (conversation.mode === 'turn-taking') {
-            await this.triggerTurnTakingConversation(groupId, conversation);
+        switch (conversation.mode) {
+            case 'scripted': return this.#triggerScriptedTable(groupId, conversation);
+            case 'scripted-custom': return this.#triggerScriptedCustom(groupId, conversation);
+            case 'random': return this.#triggerRandom(conversation);
+            case 'turn-taking': return this.#triggerTurnTaking(groupId, conversation);
         }
     }
 
-    /**
-     * Trigger a scripted conversation with a roll table
-     * Hard-selects lines by index instead of rolling
-     * NPCs alternate speaking consecutive lines from the table
-     */
-    async triggerScriptedTableConversation(groupId, conversation) {
-        // Get the shared table
+    /** NPCs alternate speaking consecutive lines from the table, in order. */
+    async #triggerScriptedTable(groupId, conversation) {
         const table = game.tables.get(conversation.sharedTableId);
-        if (!table) {
-            console.error(`CONV: Shared table not found: ${conversation.sharedTableId}`);
-            return;
-        }
+        if (!table) return;
+        const results = Array.from(table.results.values());
+        if (!results.length) return;
 
-        // Get current line in the conversation
-        let currentLine = this.conversationHistory.get(groupId) || 0;
-
-        // Convert results collection to array
-        const resultsArray = Array.from(table.results.values());
-        if (resultsArray.length === 0) {
-            console.error(`CONV: Table has no entries`);
-            return;
-        }
-
-        // Check if we've reached the end of the table
-        if (currentLine >= resultsArray.length) {
-            console.log(`CONV: Conversation "${conversation.name}" has reached the end. Pausing.`);
+        const currentLine = this.conversationHistory.get(groupId) || 0;
+        if (currentLine >= results.length) {
+            // Finished the script — pause the group so it doesn't loop forever.
             conversation.enabled = false;
             await this.saveConversationGroups();
-            //ui.notifications.info(`Conversation "${conversation.name}" completed and paused`);
             return;
         }
 
-        // Determine which NPC speaks (alternates based on current line)
-        const npcIndex = currentLine % conversation.npcs.length;
-        const npcId = conversation.npcs[npcIndex];
-
-        if (!npcId) {
-            console.error(`CONV: NPC not found at index ${npcIndex}`);
-            return;
-        }
-
+        const npcId = conversation.npcs[currentLine % conversation.npcs.length];
         const npcToken = canvas.tokens.get(npcId);
-        if (!npcToken) {
-            console.error(`CONV: Token not found: ${npcId}`);
-            // Move to next line anyway
-            this.conversationHistory.set(groupId, currentLine + 1);
-            return;
-        }
-
-        // Get the table entry at current line
-        const tableEntry = resultsArray[currentLine];
-
-        if (tableEntry) {
-            const dialogue = tableEntry.text;
-            console.log(`CONV: "${npcToken.name}" says (scripted table): "${dialogue}" [Line ${currentLine + 1}/${resultsArray.length}]`);
-            await this.dialogueAuraSystem.displayDialogue(npcToken, dialogue);
-        }
-
-        // Move to next line
         this.conversationHistory.set(groupId, currentLine + 1);
+        if (!npcToken) return;
+
+        const text = results[currentLine]?.text;
+        if (text) await ambientDialogue.displayDialogue(npcToken, text);
     }
 
-    /**
-     * Trigger a scripted conversation with custom text
-     */
-    async triggerScriptedCustomConversation(groupId, conversation) {
-        // Get current line
-        let currentLine = this.conversationHistory.get(groupId) || 0;
-
-        // Get the dialogue line
-        const dialogueLine = conversation.dialogue[currentLine];
-        if (!dialogueLine) {
-            console.log(`CONV: Conversation "${conversation.name}" completed, resetting`);
+    async #triggerScriptedCustom(groupId, conversation) {
+        const currentLine = this.conversationHistory.get(groupId) || 0;
+        const line = conversation.dialogue[currentLine];
+        if (!line) {
             this.conversationHistory.set(groupId, 0);
             return;
         }
+        this.conversationHistory.set(groupId, (currentLine + 1) % conversation.dialogue.length);
 
-        // Get the speaker token
-        const speakerToken = canvas.tokens.get(dialogueLine.speaker);
-        if (!speakerToken) {
-            console.error(`CONV: Speaker token not found: ${dialogueLine.speaker}`);
-            return;
-        }
-
-        console.log(`CONV: "${speakerToken.name}" says: "${dialogueLine.text}"`);
-
-        // Display dialogue
-        await this.dialogueAuraSystem.displayDialogue(speakerToken, dialogueLine.text);
-
-        // Move to next line
-        currentLine = (currentLine + 1) % conversation.dialogue.length;
-        this.conversationHistory.set(groupId, currentLine);
+        const speakerToken = canvas.tokens.get(line.speaker);
+        if (!speakerToken) return;
+        await ambientDialogue.displayDialogue(speakerToken, line.text);
     }
 
-    /**
-     * Trigger a random conversation
-     */
-    async triggerRandomConversation(groupId, conversation) {
-        // Pick a random NPC from the group
-        const randomNpcId = conversation.npcs[Math.floor(Math.random() * conversation.npcs.length)];
-        const tableId = conversation.tablesByNPC[randomNpcId];
-
-        if (!tableId) {
-            console.error(`CONV: No table assigned for NPC ${randomNpcId}`);
-            return;
-        }
-
-        const table = game.tables.get(tableId);
-        if (!table) {
-            console.error(`CONV: Table not found: ${tableId}`);
-            return;
-        }
-
-        const npcToken = canvas.tokens.get(randomNpcId);
-        if (!npcToken) {
-            console.error(`CONV: Token not found: ${randomNpcId}`);
-            return;
-        }
-
-        // Roll the table
-        const result = await table.roll();
-        if (result.results && result.results.length > 0) {
-            const dialogue = result.results[0].text;
-            console.log(`CONV: "${npcToken.name}" says: "${dialogue}"`);
-            await this.dialogueAuraSystem.displayDialogue(npcToken, dialogue);
-        }
-    }
-
-    /**
-     * Trigger a turn-taking conversation
-     * NPCs take turns rolling from a shared table
-     */
-    async triggerTurnTakingConversation(groupId, conversation) {
-        // Get the shared table
-        const table = game.tables.get(conversation.sharedTableId);
-        if (!table) {
-            console.error(`CONV: Shared table not found: ${conversation.sharedTableId}`);
-            return;
-        }
-
-        // Determine whose turn it is
-        let currentSpeaker = this.conversationHistory.get(groupId) || 0;
-
-        // Get the NPC for this turn
-        const npcId = conversation.npcs[currentSpeaker];
-        if (!npcId) {
-            // Reset to first NPC
-            currentSpeaker = 0;
-            this.conversationHistory.set(groupId, 0);
-            return;
-        }
-
+    async #triggerRandom(conversation) {
+        const npcId = conversation.npcs[Math.floor(Math.random() * conversation.npcs.length)];
+        const table = game.tables.get(conversation.tablesByNPC[npcId]);
         const npcToken = canvas.tokens.get(npcId);
-        if (!npcToken) {
-            console.error(`CONV: Token not found: ${npcId}`);
-            // Move to next speaker anyway
-            currentSpeaker = (currentSpeaker + 1) % conversation.npcs.length;
-            this.conversationHistory.set(groupId, currentSpeaker);
-            return;
-        }
+        if (!table || !npcToken) return;
 
-        // Roll the shared table
         const result = await table.roll();
-        if (result.results && result.results.length > 0) {
-            const dialogue = result.results[0].text;
-            console.log(`CONV: "${npcToken.name}" says (turn-taking): "${dialogue}"`);
-            await this.dialogueAuraSystem.displayDialogue(npcToken, dialogue);
-        }
-
-        // Move to next speaker
-        currentSpeaker = (currentSpeaker + 1) % conversation.npcs.length;
-        this.conversationHistory.set(groupId, currentSpeaker);
+        const text = result.results?.[0]?.text;
+        if (text) await ambientDialogue.displayDialogue(npcToken, text);
     }
 
-    /**
-     * Monitor and trigger conversations
-     */
-    checkConversations() {
-        if (!game.user.isGM) return;
+    async #triggerTurnTaking(groupId, conversation) {
+        const table = game.tables.get(conversation.sharedTableId);
+        if (!table) return;
 
-        for (let [groupId, conversation] of this.conversationGroups.entries()) {
-            if (!conversation.enabled) continue;
+        let currentSpeaker = this.conversationHistory.get(groupId) || 0;
+        if (currentSpeaker >= conversation.npcs.length) currentSpeaker = 0;
+        this.conversationHistory.set(groupId, (currentSpeaker + 1) % conversation.npcs.length);
 
-            // Check if conversation is in range
-            if (this.isConversationInRange(groupId)) {
-                // Check if enough time has passed since last trigger
-                const active = this.activeConversations.get(groupId) || { lastTriggered: 0 };
-                const timeSinceLastTrigger = (Date.now() - active.lastTriggered) / 1000;
-                // Use per-group delay, fall back to global setting if not defined
-                const interval = conversation.delay || game.settings.get(MODULE_ID, 'dialogueAuraRandomInterval');
+        const npcToken = canvas.tokens.get(conversation.npcs[currentSpeaker]);
+        if (!npcToken) return;
 
-                if (timeSinceLastTrigger >= interval) {
-                    this.triggerConversation(groupId);
-                    active.lastTriggered = Date.now();
-                    this.activeConversations.set(groupId, active);
-                }
-            }
-        }
+        const result = await table.roll();
+        const text = result.results?.[0]?.text;
+        if (text) await ambientDialogue.displayDialogue(npcToken, text);
     }
 
-    /**
-     * Save conversation groups to world settings
-     */
     async saveConversationGroups() {
         const data = Array.from(this.conversationGroups.values());
         await game.settings.set(MODULE_ID, 'conversationGroups', JSON.stringify(data));
-        console.log(`CONV: Saved ${data.length} conversation group(s)`);
     }
 
-    /**
-     * Load conversation groups from world settings
-     */
-    async loadConversationGroups() {
+    loadConversationGroups() {
         try {
-            const data = game.settings.get(MODULE_ID, 'conversationGroups');
-            const groups = JSON.parse(data || '[]');
-
+            const groups = JSON.parse(game.settings.get(MODULE_ID, 'conversationGroups') || '[]');
             this.conversationGroups.clear();
-            for (let group of groups) {
-                this.conversationGroups.set(group.groupId, group);
-            }
-
-            console.log(`CONV: Loaded ${groups.length} conversation group(s)`);
-        } catch (error) {
-            console.error("CONV: Error loading conversation groups:", error);
+            for (const group of groups) this.conversationGroups.set(group.groupId, group);
+        } catch (e) {
+            console.error(`${MODULE_ID} | error loading conversation groups`, e);
         }
     }
 
-    /**
-     * Get conversation statistics
-     */
     getConversationStats() {
-        const total = this.conversationGroups.size;
-        const enabled = Array.from(this.conversationGroups.values()).filter(c => c.enabled).length;
-        const scriptedCount = Array.from(this.conversationGroups.values()).filter(c => c.mode === 'scripted' || c.mode === 'scripted-custom').length;
-        const randomCount = Array.from(this.conversationGroups.values()).filter(c => c.mode === 'random').length;
-        const turnTakingCount = Array.from(this.conversationGroups.values()).filter(c => c.mode === 'turn-taking').length;
-
+        const groups = this.getConversationGroups();
         return {
-            total,
-            enabled,
-            disabled: total - enabled,
-            scripted: scriptedCount,
-            random: randomCount,
-            turnTaking: turnTakingCount
+            total: groups.length,
+            enabled: groups.filter(c => c.enabled).length,
+            disabled: groups.filter(c => !c.enabled).length,
+            scripted: groups.filter(c => c.mode.startsWith('scripted')).length,
+            random: groups.filter(c => c.mode === 'random').length,
+            turnTaking: groups.filter(c => c.mode === 'turn-taking').length
         };
     }
 }
 
-// Export for use in main dialogue-aura.js
-window.ConversationGroupsSystem = ConversationGroupsSystem;
-
-console.log("LOADED: Conversation Groups system ready");
+export const conversationGroups = new ConversationGroupsSystem();
